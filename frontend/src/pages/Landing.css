@@ -1,0 +1,187 @@
+.landing-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 2rem;
+}
+
+.top-nav {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-bottom: 2rem;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 4rem;
+}
+
+.logo {
+  font-size: 1.5rem;
+  font-weight: 700;
+  letter-spacing: -0.5px;
+}
+
+.nav-links {
+  display: flex;
+  gap: 1rem;
+}
+
+.btn-secondary {
+  padding: 0.75rem 1.5rem;
+  border-radius: 6px;
+  text-decoration: none;
+  color: var(--text-main);
+  font-weight: 600;
+  transition: background 0.2s ease;
+}
+
+.btn-secondary:hover {
+  background: var(--panel-bg);
+}
+
+.hero {
+  text-align: center;
+  margin-bottom: 5rem;
+}
+
+.hero h1 {
+  font-size: 4rem;
+  line-height: 1.1;
+  margin-bottom: 1.5rem;
+  background: linear-gradient(135deg, #fff 0%, #94a3b8 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.hero-subtitle {
+  font-size: 1.25rem;
+  color: var(--text-muted);
+  max-width: 700px;
+  margin: 0 auto;
+  line-height: 1.6;
+}
+
+.jackpot-section {
+  margin-bottom: 5rem;
+}
+
+.jackpot-section h2 {
+  text-align: center;
+  font-size: 2rem;
+  margin-bottom: 2rem;
+}
+
+.jackpot-grid {
+  display: flex;
+  gap: 2rem;
+  justify-content: center;
+}
+
+.jackpot-card {
+  background: var(--panel-bg);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 2.5rem;
+  text-align: center;
+  flex: 1;
+  max-width: 400px;
+  box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+}
+
+.jackpot-card h3 {
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  font-size: 0.9rem;
+  margin-top: 0;
+}
+
+.amount {
+  font-size: 3rem;
+  font-weight: 800;
+  color: var(--accent);
+  margin: 1rem 0;
+}
+
+.draw-date {
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+.chart-section {
+  margin-bottom: 5rem;
+  padding: 3rem 0;
+  border-top: 1px solid var(--border);
+}
+
+.chart-section h2 {
+  text-align: center;
+  font-size: 2rem;
+  margin-bottom: 1rem;
+}
+
+.chart-subtitle {
+  text-align: center;
+  color: var(--text-muted);
+  max-width: 800px;
+  margin: 0 auto 3rem auto;
+  line-height: 1.6;
+}
+
+.chart-grid {
+  display: flex;
+  gap: 2rem;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.chart-card {
+  background: var(--panel-bg);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 2rem;
+  flex: 1;
+  min-width: 400px;
+}
+
+.chart-card h3 {
+  margin-top: 0;
+  color: var(--text-main);
+  margin-bottom: 1.5rem;
+  text-align: center;
+}
+
+.marketing-section {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 3rem;
+  padding-top: 3rem;
+  border-top: 1px solid var(--border);
+}
+
+.feature {
+  flex: 1 1 300px;
+  max-width: 350px;
+}
+
+.feature h3 {
+  font-size: 1.25rem;
+  color: var(--text-main);
+  margin-bottom: 1rem;
+}
+
+.feature p {
+  color: var(--text-muted);
+  line-height: 1.6;
+}
+
+@media (max-width: 768px) {
+  .jackpot-grid {
+    flex-direction: column;
+  }
+  .marketing-section {
+    grid-template-columns: 1fr;
+  }
+  .hero h1 {
+    font-size: 2.5rem;
+  }
+}

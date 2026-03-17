@@ -1,0 +1,67 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual environments
+venv/
+.venv/
+env/
+.env/
+lottery._env/
+
+# Node / React
+node_modules/
+dist/
+build/
+.npm/
+
+# Environment Variables
+.env
+.env.*
+!.env.example
+.envrc
+
+# Databases and Data
+data/
+*.sqlite3
+*.db
+*.csv
+*.json
+*.txt
+
+# IDEs
+.idea/
+.vscode/
+*.swp
+*.swo
+.DS_Store
+
+# Temporary files
+tmp/
+temp/
+logs/
+*.log
+
+# Project Specific
+reportlab/*.pdf
+*.pdf

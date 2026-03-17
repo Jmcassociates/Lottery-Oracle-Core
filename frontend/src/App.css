@@ -1,0 +1,176 @@
+:root {
+  --bg-color: #0f111a;
+  --panel-bg: #1a1d29;
+  --text-main: #e2e8f0;
+  --text-muted: #94a3b8;
+  --accent: #3b82f6;
+  --accent-hover: #2563eb;
+  --ball-bg: #f8fafc;
+  --ball-text: #0f172a;
+  --special-ball-bg: #ef4444;
+  --special-ball-text: #ffffff;
+  --border: #334155;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  background-color: var(--bg-color);
+  color: var(--text-main);
+  font-family: 'Segoe UI', system-ui, sans-serif;
+}
+
+.container {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 2rem;
+}
+
+header {
+  text-align: center;
+  margin-bottom: 3rem;
+}
+
+h1 {
+  font-size: 2.5rem;
+  font-weight: 700;
+  margin: 0 0 0.5rem 0;
+  letter-spacing: -0.5px;
+}
+
+.subtitle {
+  color: var(--text-muted);
+  font-size: 1.1rem;
+  margin: 0;
+}
+
+.control-panel {
+  background: var(--panel-bg);
+  padding: 2rem;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2rem;
+}
+
+.selector {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+label {
+  font-size: 0.9rem;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+select {
+  padding: 0.75rem 1.5rem;
+  background: var(--bg-color);
+  border: 1px solid var(--border);
+  color: var(--text-main);
+  border-radius: 6px;
+  font-size: 1rem;
+  cursor: pointer;
+  outline: none;
+}
+
+.btn-secondary {
+  padding: 0.75rem 1.5rem;
+  border-radius: 6px;
+  text-decoration: none;
+  color: var(--text-main);
+  background: transparent;
+  border: 1px solid var(--border);
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-secondary:hover {
+  background: var(--panel-bg);
+  border-color: var(--text-muted);
+}
+
+.btn-primary {
+  background: var(--accent);
+  color: white;
+  border: none;
+  padding: 0.75rem 2rem;
+  border-radius: 6px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.btn-primary:hover {
+  background: var(--accent-hover);
+}
+
+.btn-primary:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.results h2 {
+  font-size: 1.5rem;
+  margin-bottom: 1.5rem;
+  color: var(--text-muted);
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 0.5rem;
+}
+
+.ticket-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.ticket {
+  background: var(--panel-bg);
+  padding: 1.5rem;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 2rem;
+}
+
+.white-balls {
+  display: flex;
+  gap: 1rem;
+}
+
+.ball {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 45px;
+  height: 45px;
+  background: var(--ball-bg);
+  color: var(--ball-text);
+  border-radius: 50%;
+  font-weight: bold;
+  font-size: 1.2rem;
+  box-shadow: inset -2px -2px 6px rgba(0,0,0,0.1);
+}
+
+.special-ball {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 45px;
+  height: 45px;
+  background: var(--special-ball-bg);
+  color: var(--special-ball-text);
+  border-radius: 50%;
+  font-weight: bold;
+  font-size: 1.2rem;
+  box-shadow: inset -2px -2px 6px rgba(0,0,0,0.3);
+}

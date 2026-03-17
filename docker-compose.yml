@@ -1,0 +1,28 @@
+services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: lottery_backend
+    expose:
+      # Expose 8000 internally to the docker network, but do not bind to host port.
+      # All traffic must route through Nginx.
+      - "8000"
+    volumes:
+      - ./data:/app/data
+    environment:
+      # Use the mounted data directory for SQLite persistence
+      - DATABASE_URL=sqlite:////app/data/lottery.db
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: .
+      dockerfile: frontend/Dockerfile
+    container_name: lottery_nginx
+    ports:
+      # Expose Nginx on port 80 to the host machine
+      - "80:80"
+    depends_on:
+      - backend
+    restart: unless-stopped
