@@ -148,7 +148,8 @@ def get_live_jackpots():
 @app.get("/api/history/{game_name}")
 def get_game_history(game_name: str, limit: int = 10, db: Session = Depends(get_db)):
     """
-    JMc - 2026-03-15 - Returns historical draw data formatted for the frontend dashboard.
+    JMc - [2026-03-16] - Returns historical draw data formatted for the frontend dashboard.
+    Uses startswith to elegantly bundle Pick3 Day and Pick3 Night draws into a single response.
     """
     draws = db.query(DrawRecord).filter(DrawRecord.game_name.startswith(game_name))\
               .order_by(DrawRecord.draw_date.desc()).limit(limit).all()
@@ -163,6 +164,10 @@ def get_game_history(game_name: str, limit: int = 10, db: Session = Depends(get_
 
 @app.post("/api/user/upgrade")
 def upgrade_user_tier(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    """
+    JMc - [2026-03-16] - Mock Billing Bypass.
+    In production (GoHighLevel handoff), this would process webhooks to upgrade tier status.
+    """
     current_user.tier = "pro"
     db.commit()
     access_token = create_access_token(
@@ -173,10 +178,16 @@ def upgrade_user_tier(db: Session = Depends(get_db), current_user: User = Depend
 
 @app.post("/api/generate/{game_name}")
 def generate_tickets(game_name: str, num_tickets: int = 5, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    """
+    JMc - [2026-03-16] - The core Oracle generation controller.
+    Dynamically routes combinatorial games to LotteryMathEngine and permutation games to PermutationMathEngine.
+    """
     if game_name not in GAMES:
         raise HTTPException(status_code=404, detail="Game not found")
         
     if current_user.tier == "free":
+        # JMc - [2026-03-16] - Free Tier limit logic. Must use EDT timezone translation 
+        # to ensure the daily limit resets at Midnight EST, not Midnight UTC.
         import zoneinfo
         today = datetime.now(zoneinfo.ZoneInfo("America/New_York")).date()
         existing_gens = db.query(SavedTicketBatch).filter(
@@ -211,11 +222,13 @@ def generate_tickets(game_name: str, num_tickets: int = 5, db: Session = Depends
         previous_jackpots.add(f"{r.white_balls}:{r.special_ball}")
         
     if game_name.startswith("Pick"):
+        # JMc - [2026-03-16] - Route permutation games to the Cartesian engine.
         num_digits = 3 if game_name == "Pick3" else (4 if game_name == "Pick4" else 5)
         engine = PermutationMathEngine(game_name, formatted_history, num_digits, previous_jackpots)
         tickets, pool = engine.generate_tickets(num_tickets)
         special_pool = []
     else:
+        # JMc - [2026-03-16] - Route combinatorial games to the Wheeling engine.
         engine = LotteryMathEngine(game_name, formatted_history, config["white_max"], config["special_max"], previous_jackpots)
         sp_size = 3 if config["special_max"] > 0 else 0
         pool, special_pool = engine.generate_smart_pool(pool_size=15, special_pool_size=sp_size)
@@ -250,12 +263,16 @@ def generate_tickets(game_name: str, num_tickets: int = 5, db: Session = Depends
 
 @app.get("/api/my-tickets")
 def get_my_tickets(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    """
+    JMc - [2026-03-16] - Fetches the user's previously generated tickets from the Vault.
+    """
     batches = db.query(SavedTicketBatch).filter(SavedTicketBatch.user_id == current_user.id)\
                 .order_by(SavedTicketBatch.created_at.desc()).all()
                 
     result = []
     for b in batches:
-        # SQLite stores naive datetimes in UTC. We must append 'Z' so the browser converts it to local time.
+        # JMc - [2026-03-16] - SQLite stores naive datetimes in UTC. We must append 'Z' 
+        # so the browser javascript explicitly translates it to local time.
         created_at_str = b.created_at.isoformat()
         if b.created_at.tzinfo is None:
             created_at_str += "Z"
@@ -277,7 +294,8 @@ def get_my_tickets(db: Session = Depends(get_db), current_user: User = Depends(g
 @app.get("/api/check-batch/{batch_id}")
 def check_batch_results(batch_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     """
-    JMc - The Reality Check. Compares a saved batch against all draws that occurred AFTER the batch was created.
+    JMc - [2026-03-16] - The Reality Check Engine. 
+    Compares a saved batch against all draws that occurred AFTER the batch was created.
     """
     batch = db.query(SavedTicketBatch).filter(SavedTicketBatch.id == batch_id, SavedTicketBatch.user_id == current_user.id).first()
     if not batch:
@@ -287,7 +305,8 @@ def check_batch_results(batch_id: int, db: Session = Depends(get_db), current_us
     if not game_config:
         raise HTTPException(status_code=400, detail="Invalid game configuration")
 
-    # Find draws that happened on or after the day the batch was created
+    # JMc - [2026-03-16] - Find draws that happened on or after the day the batch was created.
+    # Must explicitely cast UTC to EDT so we don't accidentally skip late-night draws.
     import zoneinfo
     created_at_utc = batch.created_at
     if created_at_utc.tzinfo is None:
@@ -322,9 +341,10 @@ def check_batch_results(batch_id: int, db: Session = Depends(get_db), current_us
             is_pick = batch.game_name.startswith("Pick")
             
             if is_pick:
-                # Exact Match logic for simplicity on Pick games
+                # JMc - [2026-03-16] - Exact Match logic for permutation games (order matters).
                 white_matches = len(ticket_wb_list) if ticket_wb_list == draw_wb_list else 0
             else:
+                # JMc - [2026-03-16] - Intersection logic for combinatorial games (order doesn't matter).
                 white_matches = len(ticket_wb_set.intersection(draw_wb_set))
             
             sb_match = (ticket_sb == draw_sb)
@@ -363,7 +383,7 @@ def check_batch_results(batch_id: int, db: Session = Depends(get_db), current_us
 @app.get("/api/export-batch/{batch_id}")
 def export_batch_to_pdf(batch_id: int, tz: str = None, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     """
-    JMc - Syndicate Exporter. Generates a professional PDF manifest for a ticket batch.
+    JMc - [2026-03-16] - Syndicate Exporter. Generates a professional PDF manifest for a ticket batch.
     Accepts an optional 'tz' parameter to localize the timestamp.
     """
     batch = db.query(SavedTicketBatch).filter(SavedTicketBatch.id == batch_id, SavedTicketBatch.user_id == current_user.id).first()

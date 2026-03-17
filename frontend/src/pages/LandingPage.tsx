@@ -1,3 +1,4 @@
+// JMc - [2026-03-16] - The Public Storefront. Showcases the empirical reality of the lottery to acquire users for the Oracle.
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { 
@@ -13,6 +14,7 @@ interface JackpotData {
   }
 }
 
+// JMc - [2026-03-16] - Empirical data mapping the starting number probabilities.
 const startData = [
   { name: '1 to 2', Powerball: 13.4, MegaMillions: 11.2 },
   { name: '3 to 10', Powerball: 40.9, MegaMillions: 39.8 },
@@ -21,6 +23,7 @@ const startData = [
   { name: '35+', Powerball: 3.2, MegaMillions: 1.0 },
 ];
 
+// JMc - [2026-03-16] - Empirical data mapping the Pick 3 sum distribution bell curve.
 const pick3Data = [
   { sum: '3-10', freq: 12.0 },
   { sum: '11', freq: 6.9 },
@@ -36,6 +39,7 @@ const LandingPage = () => {
   const [jackpots, setJackpots] = useState<JackpotData | null>(null);
 
   useEffect(() => {
+    // JMc - [2026-03-16] - Fetch live unauthenticated jackpots from the scraper for the marketing display.
     fetch('/api/jackpots')
       .then(res => res.json())
       .then(data => setJackpots(data))

@@ -1,3 +1,4 @@
+// JMc - [2026-03-16] - Main Oracle Dashboard. Handles all authenticated interactions, Vault retrieval, and Reality Check execution.
 import { useState, useEffect } from 'react';
 import { fetchWithAuth, getTier, setToken, logout } from '../utils/auth';
 
@@ -27,6 +28,7 @@ const Dashboard = () => {
   const [numTickets, setNumTickets] = useState<number>(tier === 'pro' ? 20 : 5);
 
   useEffect(() => {
+    // JMc - [2026-03-16] - Dynamically fetch available games from the API configuration.
     console.log("Dashboard mount - fetching games...");
     fetch('/api/games')
       .then(res => res.json())
@@ -36,7 +38,7 @@ const Dashboard = () => {
           setGames(data.games);
           setSelectedGame(data.games[0]);
           
-          // Fetch recent draws for all games
+          // JMc - [2026-03-16] - Fetch recent draws for all games
           data.games.forEach((game: string) => {
             console.log(`Fetching history for ${game}...`);
             fetchWithAuth(`/api/history/${game}?limit=1`)
@@ -56,6 +58,7 @@ const Dashboard = () => {
       })
       .catch(err => console.error("Failed to load games:", err));
       
+    // JMc - [2026-03-16] - Pull live jackpots from the scraper
     fetch('/api/jackpots')
       .then(res => res.json())
       .then(data => {
@@ -68,6 +71,7 @@ const Dashboard = () => {
   }, []);
 
   const loadSavedTickets = async () => {
+    // JMc - [2026-03-16] - Fetch historical artifacts (batches) from the Vault.
     try {
       const res = await fetchWithAuth('/api/my-tickets');
       if (res.ok) {
@@ -93,6 +97,7 @@ const Dashboard = () => {
   };
 
   const generateTickets = async () => {
+    // JMc - [2026-03-16] - Dispatch generation request to the selected Mathematical Engine.
     setLoading(true);
     setError(null);
     setTickets([]);
@@ -120,6 +125,7 @@ const Dashboard = () => {
   };
 
   const checkBatch = async (batchId: number) => {
+    // JMc - [2026-03-16] - Trigger the Reality Check ROI calculator.
     setCheckingBatch(batchId);
     try {
       const res = await fetchWithAuth(`/api/check-batch/${batchId}`);
@@ -135,6 +141,7 @@ const Dashboard = () => {
   };
 
   const exportBatch = async (batchId: number, gameName: string) => {
+    // JMc - [2026-03-16] - Fetch the PDF Manifest and force a local download.
     try {
       const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
       const res = await fetchWithAuth(`/api/export-batch/${batchId}?tz=${encodeURIComponent(tz)}`);
