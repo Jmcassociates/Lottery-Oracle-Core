@@ -1,5 +1,5 @@
 # State Lottery Game Inventory & Expansion Strategy
-**Prepared By:** Bert, Structural Diagnostician
+**Prepared By:** James McCabe (ModernCYPH3R)
 **Target:** Phase 6 (Multi-State Integration)
 
 While almost every state has unique novelty games, the core mathematical structure of daily lottery draws is highly standardized across the United States. To scale the Oracle efficiently, we will ignore the bizarre outlier games and focus exclusively on the high-volume, standardized structures: **The "Cash" Games (Combinatorial)** and **The "Pick" Games (Permutation)**.

@@ -1,5 +1,5 @@
 # The Oracle Architecture: Mathematical Game Analysis
-**Author:** Bert, Structural Diagnostician & Solutions Architect
+**Author:** James McCabe (ModernCYPH3R)
 
 Not all lotteries are mathematically equal. The Oracle Platform treats every game as a unique statistical environment, utilizing deep empirical data to build game-aware constraints. 
 
