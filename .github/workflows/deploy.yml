@@ -88,7 +88,7 @@ jobs:
         service: ${{ env.BACKEND_SERVICE_NAME }}
         region: ${{ env.REGION }}
         image: ${{ env.GAR_LOCATION }}/${{ env.BACKEND_SERVICE_NAME }}:${{ github.sha }}
-        flags: '--allow-unauthenticated'
+        flags: '--allow-unauthenticated --add-cloudsql-instances=${{ env.PROJECT_ID }}:${{ env.REGION }}:oracle-db-instance'
         env_vars: |
           DATABASE_URL=${{ secrets.PROD_DATABASE_URL }}
           JWT_SECRET=${{ secrets.JWT_SECRET }}
