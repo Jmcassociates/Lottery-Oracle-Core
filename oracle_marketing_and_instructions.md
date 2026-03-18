@@ -7,6 +7,42 @@ If you are looking for a system that "predicts" the future, go buy a crystal bal
 
 But if you are going to play, you should play correctly. The Lottery Oracle doesn't predict the future; it **organizes the variance**. Here is exactly how the math works, why it looks weird, and what you should actually expect.
 
+### The Autonomous Architecture Flow
+
+```mermaid
+graph TD
+    DB[(10-Year Historical Database)] --> PROPHET[The Prophet Algorithm]
+    
+    subgraph Scoring Models
+        PROPHET --> |40% Weight| M[Markov Chain Transitions]
+        PROPHET --> |40% Weight| P[Poisson Overdue Tension]
+        PROPHET --> |20% Weight| F[Base Draw Frequency]
+    end
+    
+    M --> POOL[Autonomous 15-Number Smart Pool]
+    P --> POOL
+    F --> POOL
+    
+    POOL --> PRAGMATIST[The Pragmatist Algorithm]
+    PRAGMATIST --> |Combinatorial Wheeling| ALL[3,003 Possible Combinations]
+    
+    ALL --> SCOUTER{The Pattern Scouter}
+    
+    SCOUTER -->|Reject| T1[Odd/Even Outliers]
+    SCOUTER -->|Reject| T2[Spatial Spread Traps]
+    SCOUTER -->|Reject| T3[Consecutive Sequences]
+    SCOUTER -->|Reject| T4[Historical Jackpots]
+    
+    SCOUTER -->|Approve| FINAL[Final Optimized Ticket Batch]
+    
+    style DB fill:#1e293b,stroke:#334155,color:#fff
+    style PROPHET fill:#3b82f6,stroke:#2563eb,color:#fff
+    style POOL fill:#10b981,stroke:#059669,color:#fff
+    style PRAGMATIST fill:#8b5cf6,stroke:#6366f1,color:#fff
+    style SCOUTER fill:#f59e0b,stroke:#d97706,color:#fff
+    style FINAL fill:#22c55e,stroke:#059669,color:#fff
+```
+
 ---
 
 ## 1. The Prophet: Seeding the Smart Pool
