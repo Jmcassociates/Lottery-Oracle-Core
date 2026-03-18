@@ -379,8 +379,13 @@ const Dashboard = () => {
                                         const isPick = batch.game_name.startsWith('Pick');
                                         return (
                                           <div key={wIdx} style={{ display: 'flex', alignItems: 'center', gap: '1rem', background: 'rgba(16, 185, 129, 0.1)', padding: '0.75rem', borderRadius: '6px', border: '1px solid rgba(16, 185, 129, 0.3)', flexWrap: 'wrap' }}>
-                                            <div style={{ color: '#10b981', fontWeight: 'bold', fontSize: '0.95rem', minWidth: '120px' }}>
-                                              ✓ Won ${wt.prize}
+                                            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem', minWidth: '130px' }}>
+                                              <div style={{ color: '#10b981', fontWeight: 'bold', fontSize: '1rem' }}>
+                                                ✓ Won ${wt.prize}
+                                              </div>
+                                              <div style={{ color: 'var(--text-muted)', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                                                Matched {wt.matches.white} {wt.special_ball !== null ? (wt.matches.special ? '+ 1' : '+ 0') : ''}
+                                              </div>
                                             </div>
                                             <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
                                               {wt.white_balls.map((w: number, i: number) => {
