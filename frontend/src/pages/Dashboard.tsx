@@ -140,6 +140,21 @@ const Dashboard = () => {
     }
   };
 
+  const deleteBatch = async (batchId: number) => {
+    // JMc - [2026-03-18] - Purge historical artifacts from the vault.
+    if (!window.confirm("Are you sure you want to permanently delete this batch? This cannot be undone.")) return;
+    
+    try {
+      const res = await fetchWithAuth(`/api/batches/${batchId}`, { method: 'DELETE' });
+      if (res.ok) {
+        setSavedBatches(prev => prev.filter(b => b.id !== batchId));
+        setExpandedBatch(null);
+      }
+    } catch (e) {
+      console.error("Failed to delete batch");
+    }
+  };
+
   const exportBatch = async (batchId: number, gameName: string) => {
     // JMc - [2026-03-16] - Fetch the PDF Manifest and force a local download.
     try {
@@ -306,8 +321,31 @@ const Dashboard = () => {
                         {new Date(batch.created_at).toLocaleString()} • {batch.tickets.length} Tickets
                       </span>
                     </div>
-                    <div style={{ color: 'var(--accent)', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                      {expandedBatch === batch.id ? 'Hide Tickets ↑' : 'View Tickets ↓'}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
+                      <div style={{ color: 'var(--accent)', fontWeight: 'bold' }}>
+                        {expandedBatch === batch.id ? 'Hide Tickets ↑' : 'View Tickets ↓'}
+                      </div>
+                      <button 
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          deleteBatch(batch.id);
+                        }}
+                        style={{
+                          background: 'transparent',
+                          color: '#ef4444',
+                          border: '1px solid #ef4444',
+                          padding: '0.25rem 0.75rem',
+                          borderRadius: '4px',
+                          cursor: 'pointer',
+                          fontSize: '0.85rem',
+                          fontWeight: 'bold',
+                          transition: 'all 0.2s ease'
+                        }}
+                        onMouseOver={(e) => { e.currentTarget.style.background = '#ef4444'; e.currentTarget.style.color = 'white'; }}
+                        onMouseOut={(e) => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = '#ef4444'; }}
+                      >
+                        Delete
+                      </button>
                     </div>
                   </div>
 

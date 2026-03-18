@@ -419,3 +419,17 @@ def export_batch_to_pdf(batch_id: int, tz: str = None, db: Session = Depends(get
         media_type="application/pdf",
         headers={"Content-Disposition": f"attachment; filename={filename}"}
     )
+
+@app.delete("/api/batches/{batch_id}")
+def delete_batch(batch_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    """
+    JMc - [2026-03-18] - Purge historical artifacts. 
+    Deletes a saved batch and cascades to all associated tickets.
+    """
+    batch = db.query(SavedTicketBatch).filter(SavedTicketBatch.id == batch_id, SavedTicketBatch.user_id == current_user.id).first()
+    if not batch:
+        raise HTTPException(status_code=404, detail="Batch not found")
+        
+    db.delete(batch)
+    db.commit()
+    return {"status": "success", "message": "Batch purged"}
