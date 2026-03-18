@@ -173,9 +173,9 @@ const Dashboard = () => {
 
       <main>
         {/* Information Dashboard */}
-        <section className="info-dashboard" style={{ display: 'flex', gap: '2rem', marginBottom: '3rem' }}>
+        <section className="info-dashboard" style={{ display: 'flex', gap: '2rem', marginBottom: '3rem', flexWrap: 'wrap' }}>
           {games.map(game => (
-            <div key={game} style={{ flex: 1, background: 'var(--panel-bg)', padding: '1.5rem', borderRadius: '12px', border: '1px solid var(--border)' }}>
+            <div key={game} style={{ flex: '1 1 300px', background: 'var(--panel-bg)', padding: '1.5rem', borderRadius: '12px', border: '1px solid var(--border)', minWidth: '300px' }}>
               <h3 style={{ marginTop: 0, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '1px', fontSize: '0.9rem', borderBottom: '1px solid var(--border)', paddingBottom: '0.5rem' }}>
                 {game === 'MegaMillions' ? 'Mega Millions' : game} Status
               </h3>

@@ -34,6 +34,21 @@ class JackpotScraper:
                 "game_id": "game-1030",
                 "type": "scrape_amount_only",
                 "next_draw": "Draws Daily 11:00 PM"
+            },
+            "Pick5": {
+                "type": "fixed",
+                "jackpot": "$50,000 Top Prize",
+                "next_draw": "Draws Daily 1:59 PM & 11:00 PM"
+            },
+            "Pick4": {
+                "type": "fixed",
+                "jackpot": "$5,000 Top Prize",
+                "next_draw": "Draws Daily 1:59 PM & 11:00 PM"
+            },
+            "Pick3": {
+                "type": "fixed",
+                "jackpot": "$500 Top Prize",
+                "next_draw": "Draws Daily 1:59 PM & 11:00 PM"
             }
         }
         
