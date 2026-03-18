@@ -13,6 +13,7 @@ env:
   FRONTEND_SERVICE_NAME: oracle-frontend
   # JMc - 2026-03-18 - Artifact Registry Repository
   GAR_LOCATION: us-east1-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/lottery-oracle
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
   
 jobs:
   test-and-lint:
@@ -28,6 +29,7 @@ jobs:
       with:
         python-version: "3.11"
         cache: 'pip'
+        cache-dependency-path: 'backend/requirements.txt'
 
     - name: Install Backend Dependencies
       run: |
