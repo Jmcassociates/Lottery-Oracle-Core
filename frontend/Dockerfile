@@ -13,11 +13,17 @@ RUN npm run build
 # Stage 2: Serve with Nginx
 FROM nginx:alpine
 
-# Copy the custom Nginx configuration we created earlier
+# Copy the custom Nginx configuration from the project root's nginx directory
 COPY nginx/nginx.conf /etc/nginx/nginx.conf
 
 # Copy the built static assets from the node stage to Nginx's default public directory
 COPY --from=build /app/dist /usr/share/nginx/html
 
+# JMc - 2026-03-18 - Cloud Run dynamically assigns a PORT environment variable (default 8080).
+# We must use envsubst to dynamically inject this into the nginx.conf at boot time.
+# But first, create a template from the conf we just copied
+RUN cp /etc/nginx/nginx.conf /etc/nginx/nginx.conf.template
+
 EXPOSE 80
-CMD ["nginx", "-g", "daemon off;"]
+# Use sh to run envsubst before starting nginx
+CMD ["sh", "-c", "envsubst '${PORT}' < /etc/nginx/nginx.conf.template > /etc/nginx/nginx.conf && nginx -g 'daemon off;'"]
