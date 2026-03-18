@@ -42,7 +42,7 @@ jobs:
     - name: Run Backend Tests
       run: |
         cd backend
-        pytest test_engine_patterns.py test_apollo.py -v
+        pytest test_math.py -v
 
   build-and-deploy:
     name: Deploy to Google Cloud Run
