@@ -46,9 +46,13 @@ data/
 *.sqlite3
 *.db
 *.csv
-*.json
 *.txt
 !requirements.txt
+
+# JSON configuration files
+!*.json
+# Ignore only data json files
+data/*.json
 
 # IDEs
 .idea/
