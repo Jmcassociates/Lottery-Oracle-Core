@@ -9,15 +9,18 @@ But if you are going to play, you should play correctly. The Lottery Oracle does
 
 ---
 
-## 1. The Engine: How We Pick the Pool
-We don't pick 5 random numbers. We select a highly targeted "Smart Pool" of 15 numbers from the total 69 (Powerball) or 70 (Mega Millions). We do this using two primary models:
+## 1. The Prophet: Seeding the Smart Pool
+We don't ask you for your "lucky numbers," your kids' birthdays, or your anniversary dates. That is emotional geometry, and the math doesn't care about your kids. 
 
-*   **Markov Chains (The State Machine):** We analyze historical transition probabilities. If the number 14 drops on Tuesday, what numbers historically follow it on Friday? We build a matrix of these transitions.
-*   **Poisson Distribution (The Tension):** While balls don't have memory, mathematical frequencies must eventually normalize over a large enough sample size. We calculate the "Overdue Score" for every number. When a number hasn't hit in 6 months, the statistical "tension" increases. 
+The Oracle is **100% autonomously seeded** by raw empirical data. When you initiate a generation, our "Prophet" algorithm scans a decade of historical draw data and mathematically scores every single number (e.g., 1 to 69 for Powerball) using three primary models:
 
-We combine these scores to park our 15-number pool exactly where the math says the numbers eventually have to go.
+*   **Markov Chains (40% Weight - The State Machine):** We analyze historical transition probabilities. If the number 14 drops on Tuesday, what numbers historically follow it on Friday? We build a matrix of these transitions based on the very last draw.
+*   **Poisson Distribution (40% Weight - The Tension):** While balls don't have memory, mathematical frequencies must eventually normalize over a large enough sample size. We calculate the "Overdue Score" for every number. When a number hasn't hit in 60 draws, the statistical "tension" is massive. 
+*   **Base Frequency (20% Weight):** We account for microscopic physical imperfections that cause certain balls to drop slightly more often over a 10-year sample size.
 
-## 2. Combinatorial Wheeling: Why The Numbers Look Sequential
+The Prophet normalizes these three massive datasets and extracts the **top 15 highest-scoring numbers**. It locks them in as your "Smart Pool" and hands them off to the deployment engine.
+
+## 2. The Pragmatist: Combinatorial Wheeling
 When you generate a batch of tickets, the Oracle takes your 15-number Smart Pool and calculates every possible 5-number combination (which is 3,003 variations). 
 
 Because you aren't a billionaire, you can't buy all 3,000. So our "Pragmatist" algorithm steps in. It sorts through the combinations to select a smaller batch (e.g., 5 or 50 tickets) that provides the **maximum mathematical coverage of 3-number triplets**. 

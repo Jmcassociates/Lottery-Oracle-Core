@@ -10,6 +10,14 @@ Here is the structural blueprint of the mathematical behavior we have documented
 ## Part 1: Combinatorial Games (Powerball, Mega Millions, Cash4Life, Cash5)
 These games use **Sampling Without Replacement** (order does not matter, numbers do not repeat). The Oracle uses the `LotteryMathEngine` for these games, relying on Markov Chains to pick a "Smart Pool" and Combinatorial Wheeling to guarantee Triplet Coverage. 
 
+### The Autonomous "Smart Pool"
+A critical architectural mandate of the Oracle is that **the user never inputs their own numbers**. Emotional geometry (birthdays, anniversaries) is statistically fatal. Instead, the Oracle's "Prophet" algorithm autonomously seeds a 15-number Smart Pool by analyzing a decade of empirical draw data across three mathematical models:
+1.  **Markov Chains (40% Weight):** Calculates historical transition probabilities based on the exact balls that dropped in the previous draw.
+2.  **Poisson Overdue Tension (40% Weight):** Ranks numbers based on how many draws have elapsed since their last appearance, capitalizing on statistical normalization.
+3.  **Base Frequency (20% Weight):** Accounts for microscopic physical variance in the balls or tumblers over a 10-year sample size.
+
+This autonomously generated 15-number matrix is then handed to the "Pragmatist" algorithm for Combinatorial Wheeling.
+
 ### The Spread Anomaly: Powerball vs. Mega Millions
 Both games have nearly identical board sizes (1-69 for Powerball, 1-70 for Mega Millions), but their distribution curves behave drastically differently. We analyzed the starting number (the lowest number) of over 1,300 draws.
 
