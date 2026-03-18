@@ -374,10 +374,46 @@ const Dashboard = () => {
                                     })()} | Winning Numbers: {drawResult.drawn_numbers.white_balls.join(', ')} {drawResult.drawn_numbers.special_ball !== null ? `[${drawResult.drawn_numbers.special_ball}]` : ''}
                                   </div>
                                   {drawResult.winning_tickets.length > 0 ? (
-                                    <div style={{ color: '#10b981', fontWeight: 'bold', fontSize: '0.95rem' }}>
-                                      {drawResult.winning_tickets.map((wt: any, wIdx: number) => (
-                                        <div key={wIdx}>✓ Matched {wt.matches.white} {wt.matches.special !== null ? `+ ${wt.matches.special ? '1' : '0'}` : ''} = ${wt.prize}</div>
-                                      ))}
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', marginTop: '1rem' }}>
+                                      {drawResult.winning_tickets.map((wt: any, wIdx: number) => {
+                                        const isPick = batch.game_name.startsWith('Pick');
+                                        return (
+                                          <div key={wIdx} style={{ display: 'flex', alignItems: 'center', gap: '1rem', background: 'rgba(16, 185, 129, 0.1)', padding: '0.75rem', borderRadius: '6px', border: '1px solid rgba(16, 185, 129, 0.3)', flexWrap: 'wrap' }}>
+                                            <div style={{ color: '#10b981', fontWeight: 'bold', fontSize: '0.95rem', minWidth: '120px' }}>
+                                              ✓ Won ${wt.prize}
+                                            </div>
+                                            <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                                              {wt.white_balls.map((w: number, i: number) => {
+                                                const isMatch = isPick 
+                                                  ? w === drawResult.drawn_numbers.white_balls[i] 
+                                                  : drawResult.drawn_numbers.white_balls.includes(w);
+                                                return (
+                                                  <span key={i} style={{ 
+                                                    width: '28px', height: '28px', display: 'flex', alignItems: 'center', justifyContent: 'center', 
+                                                    background: isMatch ? '#10b981' : 'var(--panel-bg)', 
+                                                    color: isMatch ? 'white' : 'var(--text-muted)', 
+                                                    borderRadius: '50%', fontWeight: 'bold', fontSize: '0.85rem',
+                                                    border: isMatch ? 'none' : '1px solid var(--border)'
+                                                  }}>
+                                                    {w.toString().padStart(2, '0')}
+                                                  </span>
+                                                );
+                                              })}
+                                              {wt.special_ball !== null && (
+                                                <span style={{ 
+                                                  width: '28px', height: '28px', display: 'flex', alignItems: 'center', justifyContent: 'center', 
+                                                  background: wt.matches.special ? '#10b981' : 'var(--panel-bg)', 
+                                                  color: wt.matches.special ? 'white' : 'var(--text-muted)', 
+                                                  borderRadius: '50%', fontWeight: 'bold', fontSize: '0.85rem', marginLeft: '0.5rem',
+                                                  border: wt.matches.special ? 'none' : '1px solid var(--border)'
+                                                }}>
+                                                  {wt.special_ball.toString().padStart(2, '0')}
+                                                </span>
+                                              )}
+                                            </div>
+                                          </div>
+                                        );
+                                      })}
                                     </div>
                                   ) : (
                                     <div style={{ color: 'var(--text-muted)', fontSize: '0.95rem' }}>No winning tickets for this draw.</div>

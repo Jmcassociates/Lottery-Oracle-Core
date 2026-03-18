@@ -354,7 +354,7 @@ def check_batch_results(batch_id: int, db: Session = Depends(get_db), current_us
             if prize != 0:
                 winning_tickets.append({
                     "ticket_id": ticket.id,
-                    "white_balls": list(ticket_wb_set),
+                    "white_balls": ticket_wb_list,
                     "special_ball": ticket_sb,
                     "matches": {"white": white_matches, "special": sb_match},
                     "prize": prize
@@ -365,7 +365,7 @@ def check_batch_results(batch_id: int, db: Session = Depends(get_db), current_us
         total_won += draw_winnings
         results.append({
             "draw_date": draw.draw_date.isoformat(),
-            "drawn_numbers": {"white_balls": list(draw_wb_set), "special_ball": draw_sb},
+            "drawn_numbers": {"white_balls": draw_wb_list, "special_ball": draw_sb},
             "winnings": draw_winnings,
             "winning_tickets": winning_tickets
         })
