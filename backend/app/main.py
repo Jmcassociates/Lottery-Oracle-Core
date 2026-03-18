@@ -4,7 +4,6 @@ from fastapi import FastAPI, Depends, HTTPException
 from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 from datetime import datetime, timedelta, timezone
-from apscheduler.schedulers.background import BackgroundScheduler
 
 from app.core.database import engine, Base, get_db
 from app.core.models import DrawRecord, SavedTicketBatch, SavedTicket, User
