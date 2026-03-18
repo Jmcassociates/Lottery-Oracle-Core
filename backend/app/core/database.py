@@ -5,9 +5,14 @@ import os
 # JMc - [2026-03-07] - Using a local SQLite database file, easily volume-mounted in Docker.
 DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./lottery.db")
 
+# JMc - [2026-03-18] - Cloud Run PostgreSQL requires omitting the SQLite-specific thread check.
+connect_args = {}
+if DATABASE_URL.startswith("sqlite"):
+    connect_args["check_same_thread"] = False
+
 engine = create_engine(
     DATABASE_URL, 
-    connect_args={"check_same_thread": False} # Required for SQLite + FastAPI
+    connect_args=connect_args
 )
 
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
