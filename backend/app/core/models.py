@@ -10,6 +10,7 @@ class DrawRecord(Base):
     __tablename__ = "historical_draws"
 
     id = Column(Integer, primary_key=True, index=True)
+    state_code = Column(String, index=True, nullable=False, default='VA')
     game_name = Column(String, index=True, nullable=False) # e.g., 'Powerball', 'MegaMillions'
     draw_date = Column(Date, nullable=False)
     
@@ -18,7 +19,7 @@ class DrawRecord(Base):
     multiplier = Column(Integer, nullable=True)
 
     __table_args__ = (
-        UniqueConstraint('game_name', 'draw_date', name='uq_game_date'),
+        UniqueConstraint('state_code', 'game_name', 'draw_date', name='uq_state_game_date'),
     )
 
 class User(Base):
@@ -43,6 +44,7 @@ class SavedTicketBatch(Base):
     
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    state_code = Column(String, index=True, nullable=False, default='VA')
     game_name = Column(String, nullable=False)
     
     # Store the pool used so we know the context of the generation

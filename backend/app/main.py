@@ -30,6 +30,7 @@ logger = logging.getLogger(__name__)
 # Game Configurations
 GAMES = {
     "Powerball": {
+        "state": "NAT",
         "white_max": 69,
         "special_max": 26,
         "fetcher": VirginiaPowerballFetcher,
@@ -46,6 +47,7 @@ GAMES = {
         }
     },
     "MegaMillions": {
+        "state": "NAT",
         "white_max": 70,
         "special_max": 24, # Post 2025 rule
         "fetcher": VirginiaMegaMillionsFetcher,
@@ -62,6 +64,7 @@ GAMES = {
         }
     },
     "Cash4Life": {
+        "state": "VA",
         "white_max": 60,
         "special_max": 4,
         "fetcher": VirginiaCash4LifeFetcher,
@@ -78,6 +81,7 @@ GAMES = {
         }
     },
     "Cash5": {
+        "state": "VA",
         "white_max": 45,
         "special_max": 0, # No special ball
         "fetcher": VirginiaCash5Fetcher,
@@ -89,6 +93,7 @@ GAMES = {
         }
     },
     "Pick5": {
+        "state": "VA",
         "white_max": 9,
         "special_max": 0,
         "fetcher": VirginiaPick5Fetcher,
@@ -97,6 +102,7 @@ GAMES = {
         }
     },
     "Pick4": {
+        "state": "VA",
         "white_max": 9,
         "special_max": 0,
         "fetcher": VirginiaPick4Fetcher,
@@ -105,6 +111,7 @@ GAMES = {
         }
     },
     "Pick3": {
+        "state": "VA",
         "white_max": 9,
         "special_max": 0,
         "fetcher": VirginiaPick3Fetcher,
@@ -138,12 +145,24 @@ app = FastAPI(title="Lottery Oracle API", lifespan=lifespan)
 app.include_router(auth.router, prefix="/api/auth", tags=["auth"])
 
 @app.get("/api/games")
-def list_games():
-    return {"games": list(GAMES.keys())}
+def list_games(state: str = "VA"):
+    """
+    JMc - [2026-03-18] - Dynamically route games by state, plus national games.
+    """
+    games = [k for k, v in GAMES.items() if v["state"] in ("NAT", state)]
+    return {"games": games}
 
 @app.get("/api/jackpots")
-def get_live_jackpots():
-    return JackpotScraper.get_live_data()
+def get_live_jackpots(state: str = "VA"):
+    """
+    JMc - [2026-03-18] - Return jackpots filtered by the active state.
+    """
+    all_jackpots = JackpotScraper.get_live_data()
+    filtered = {}
+    for game_name, data in all_jackpots.items():
+        if game_name in GAMES and GAMES[game_name]["state"] in ("NAT", state):
+            filtered[game_name] = data
+    return filtered
 
 @app.get("/api/history/{game_name}")
 def get_game_history(game_name: str, limit: int = 10, db: Session = Depends(get_db)):
@@ -236,6 +255,7 @@ def generate_tickets(game_name: str, num_tickets: int = 5, db: Session = Depends
     
     batch = SavedTicketBatch(
         user_id=current_user.id,
+        state_code=config["state"],
         game_name=game_name,
         pool_white_balls=",".join(str(x) for x in pool),
         pool_special_balls=",".join(str(x) for x in special_pool) if special_pool else ""

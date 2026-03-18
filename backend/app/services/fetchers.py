@@ -24,7 +24,7 @@ class LotteryFetcher:
     def sync_to_db(self, db: Session):
         """
         JMc - [2026-03-16] - Standardized method to sync fetched data into the universal SQLite table.
-        It strictly enforces the unique constraint (game_name, draw_date) to prevent duplicates.
+        It strictly enforces the unique constraint (state_code, game_name, draw_date) to prevent duplicates.
         """
         try:
             raw_draws = self.fetch_data()
@@ -36,6 +36,7 @@ class LotteryFetcher:
         for draw in raw_draws:
             # Check if record exists
             exists = db.query(DrawRecord).filter(
+                DrawRecord.state_code == "VA",
                 DrawRecord.game_name == self.game_name,
                 DrawRecord.draw_date == draw['date'].date()
             ).first()
@@ -47,6 +48,7 @@ class LotteryFetcher:
                 white_str = ",".join(str(x) for x in sorted_whites)
                 
                 record = DrawRecord(
+                    state_code="VA",
                     game_name=self.game_name,
                     draw_date=draw['date'].date(),
                     white_balls=white_str,
@@ -350,6 +352,7 @@ class BasePickFetcher(LotteryFetcher):
             actual_game_name = draw.get('game_name', self.game_name)
             
             exists = db.query(DrawRecord).filter(
+                DrawRecord.state_code == "VA",
                 DrawRecord.game_name == actual_game_name,
                 DrawRecord.draw_date == draw['date'].date()
             ).first()
@@ -360,6 +363,7 @@ class BasePickFetcher(LotteryFetcher):
                 white_str = ",".join(str(x) for x in draw['white_balls'])
                 
                 record = DrawRecord(
+                    state_code="VA",
                     game_name=actual_game_name,
                     draw_date=draw['date'].date(),
                     white_balls=white_str,

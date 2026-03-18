@@ -12,6 +12,7 @@ interface JackpotData {
 const Dashboard = () => {
   const [games, setGames] = useState<string[]>([]);
   const [selectedGame, setSelectedGame] = useState<string>('Powerball');
+  const [selectedState, setSelectedState] = useState<string>('VA');
   const [tickets, setTickets] = useState<any[]>([]);
   const [savedBatches, setSavedBatches] = useState<any[]>([]);
   const [batchResults, setBatchResults] = useState<Record<number, any>>({});
@@ -29,8 +30,8 @@ const Dashboard = () => {
 
   useEffect(() => {
     // JMc - [2026-03-16] - Dynamically fetch available games from the API configuration.
-    console.log("Dashboard mount - fetching games...");
-    fetch('/api/games')
+    console.log(`Dashboard mount - fetching games for ${selectedState}...`);
+    fetch(`/api/games?state=${selectedState}`)
       .then(res => res.json())
       .then(data => {
         console.log("Games loaded:", data);
@@ -59,7 +60,7 @@ const Dashboard = () => {
       .catch(err => console.error("Failed to load games:", err));
       
     // JMc - [2026-03-16] - Pull live jackpots from the scraper
-    fetch('/api/jackpots')
+    fetch(`/api/jackpots?state=${selectedState}`)
       .then(res => res.json())
       .then(data => {
         console.log("Jackpots loaded:", data);
@@ -68,7 +69,7 @@ const Dashboard = () => {
       .catch(err => console.error("Failed to load jackpots:", err));
       
     loadSavedTickets();
-  }, []);
+  }, [selectedState]);
 
   const loadSavedTickets = async () => {
     // JMc - [2026-03-16] - Fetch historical artifacts (batches) from the Vault.
@@ -183,7 +184,17 @@ const Dashboard = () => {
           <h1>Oracle Back Office</h1>
           <p className="subtitle">Tier Protocol: <span style={{ color: 'var(--accent)', textTransform: 'uppercase' }}>{tier}</span></p>
         </div>
-        <button onClick={logout} className="btn-secondary">Logout</button>
+        <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
+          <select 
+            value={selectedState} 
+            onChange={(e) => setSelectedState(e.target.value)}
+            style={{ padding: '0.5rem', borderRadius: '4px', background: 'var(--panel-bg)', color: 'var(--text-main)', border: '1px solid var(--border)' }}
+          >
+            <option value="VA">Virginia (VA)</option>
+            {/* Future states can be added here */}
+          </select>
+          <button onClick={logout} className="btn-secondary">Logout</button>
+        </div>
       </header>
 
       <main>
