@@ -104,7 +104,7 @@ jobs:
 
     - name: Build and Push Frontend Image
       run: |-
-        docker build -t "${GAR_LOCATION}/${FRONTEND_SERVICE_NAME}:${GITHUB_SHA}" -f frontend/Dockerfile .
+        docker build -t "${GAR_LOCATION}/${FRONTEND_SERVICE_NAME}:${GITHUB_SHA}" . -f frontend/Dockerfile
         docker push "${GAR_LOCATION}/${FRONTEND_SERVICE_NAME}:${GITHUB_SHA}"
 
     - name: Deploy Frontend to Cloud Run
