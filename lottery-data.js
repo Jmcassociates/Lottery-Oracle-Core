@@ -1,4 +1,4 @@
-// Lottery Data Manager - Handles lottery data loading and management
+ // Lottery Data Manager - Handles lottery data loading and management
 
 /**
  * Lottery Data Manager Class

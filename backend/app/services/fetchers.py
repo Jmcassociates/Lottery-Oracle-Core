@@ -13,6 +13,7 @@ class LotteryFetcher:
     All fetchers must implement fetch_data() and inherit sync_to_db().
     """
     game_name = "Base"
+    state_code = "VA"
     
     def fetch_data(self) -> list[dict]:
         """
@@ -36,7 +37,7 @@ class LotteryFetcher:
         for draw in raw_draws:
             # Check if record exists
             exists = db.query(DrawRecord).filter(
-                DrawRecord.state_code == "VA",
+                DrawRecord.state_code == self.state_code,
                 DrawRecord.game_name == self.game_name,
                 DrawRecord.draw_date == draw['date'].date()
             ).first()
@@ -48,7 +49,7 @@ class LotteryFetcher:
                 white_str = ",".join(str(x) for x in sorted_whites)
                 
                 record = DrawRecord(
-                    state_code="VA",
+                    state_code=self.state_code,
                     game_name=self.game_name,
                     draw_date=draw['date'].date(),
                     white_balls=white_str,
@@ -67,7 +68,7 @@ class VirginiaPowerballFetcher(LotteryFetcher):
     """
     JMc - [2026-03-16] - Fetches Powerball from the Virginia Lottery JSON API (CSV-like format).
     """
-    game_name = "Powerball"
+    game_name = "VirginiaPowerball"
     url = "https://www.valottery.com/api/v1/downloadall?gameId=20"
 
     def fetch_data(self):
@@ -122,7 +123,7 @@ class VirginiaMegaMillionsFetcher(LotteryFetcher):
     """
     JMc - [2026-03-16] - Fetches MegaMillions from the Virginia Lottery JSON API.
     """
-    game_name = "MegaMillions"
+    game_name = "VirginiaMegaMillions"
     url = "https://www.valottery.com/api/v1/downloadall?gameId=15"
     
     def fetch_data(self):
@@ -178,7 +179,7 @@ class VirginiaCash4LifeFetcher(LotteryFetcher):
     """
     JMc - [2026-03-16] - Fetches Cash4Life from the Virginia Lottery JSON API.
     """
-    game_name = "Cash4Life"
+    game_name = "VirginiaCash4Life"
     url = "https://www.valottery.com/api/v1/downloadall?gameId=1065"
 
     def fetch_data(self):
@@ -228,7 +229,7 @@ class VirginiaCash5Fetcher(LotteryFetcher):
     JMc - [2026-03-16] - Fetches Cash 5 from the Virginia Lottery JSON API.
     This game has no special ball.
     """
-    game_name = "Cash5"
+    game_name = "VirginiaCash5"
     url = "https://www.valottery.com/api/v1/downloadall?gameId=1030"
 
     def fetch_data(self):
@@ -381,19 +382,389 @@ class VirginiaPick5Fetcher(BasePickFetcher):
     """
     JMc - [2026-03-16] - Fetches Pick 5 from the Virginia Lottery JSON API.
     """
-    game_name = "Pick5"
+    game_name = "VirginiaPick5"
     url = "https://www.valottery.com/api/v1/downloadall?gameId=1035"
 
 class VirginiaPick4Fetcher(BasePickFetcher):
     """
     JMc - [2026-03-16] - Fetches Pick 4 from the Virginia Lottery JSON API.
     """
-    game_name = "Pick4"
+    game_name = "VirginiaPick4"
     url = "https://www.valottery.com/api/v1/downloadall?gameId=1040"
 
 class VirginiaPick3Fetcher(BasePickFetcher):
     """
     JMc - [2026-03-16] - Fetches Pick 3 from the Virginia Lottery JSON API.
     """
-    game_name = "Pick3"
+    game_name = "VirginiaPick3"
     url = "https://www.valottery.com/api/v1/downloadall?gameId=1050"
+
+
+class TexasCashFiveFetcher(LotteryFetcher):
+    """
+    JMc - [2026-03-18] - Fetches Cash Five from Texas Lottery CSV.
+    """
+    game_name = "TexasCashFive"
+    state_code = "TX"
+    url = "https://www.texaslottery.com/export/sites/lottery/Games/Cash_Five/Winning_Numbers/cashfive.csv"
+
+    def fetch_data(self):
+        response = requests.get(self.url, timeout=10)
+        response.raise_for_status()
+
+        draws = []
+        lines = response.text.splitlines()
+
+        for line in lines:
+            line = line.strip()
+            if not line or line.startswith('Cash Five,Month'):
+                continue
+
+            try:
+                # Format: Cash Five,10,13,1995,26,1,22,23,35
+                parts = line.split(',')
+                if len(parts) >= 9:
+                    month, day, year = int(parts[1]), int(parts[2]), int(parts[3])
+                    draw_date = datetime(year, month, day)
+                    
+                    # JMc - [2026-03-18] - The Texas Cash Five matrix changed to 5/35 on Sept 23, 2018.
+                    # We strictly drop any data before this date to prevent poisoning the predictive models
+                    # with legacy bounds that triggered combinatorial engines.
+                    if draw_date >= datetime(2018, 9, 23):
+                        white_balls = [int(x) for x in parts[4:9]]
+    
+                        draws.append({
+                            'date': draw_date,
+                            'white_balls': white_balls,
+                            'special_ball': None,
+                            'multiplier': None,
+                            'game_name': self.game_name
+                        })
+            except Exception:
+                continue
+        return draws
+
+class BaseTexasPickFetcher(LotteryFetcher):
+    """
+    JMc - [2026-03-18] - Base class for Texas Pick 3 and Daily 4.
+    Fetches from 4 separate CSV endpoints and combines them.
+    """
+    state_code = "TX"
+    
+    def fetch_data(self):
+        draws = []
+        for period, url in self.urls.items():
+            try:
+                response = requests.get(url, timeout=10)
+                response.raise_for_status()
+                lines = response.text.splitlines()
+
+                for line in lines:
+                    line = line.strip()
+                    if not line or 'Month' in line:
+                        continue
+
+                    try:
+                        # Format: Pick 3 Night,3,17,2026,7,3,3,,5
+                        # or Pick 3 Night,10,25,1993,3,2,9,,
+                        parts = line.split(',')
+                        if len(parts) >= 4 + self.num_balls:
+                            month, day, year = int(parts[1]), int(parts[2]), int(parts[3])
+                            draw_date = datetime(year, month, day)
+                            
+                            white_balls = [int(parts[4+i]) for i in range(self.num_balls)]
+                            
+                            # Check for Fireball if columns exist
+                            fireball = None
+                            if len(parts) > 4 + self.num_balls + 1 and parts[-1].strip():
+                                fireball = int(parts[-1].strip())
+                            
+                            draws.append({
+                                'date': draw_date,
+                                'white_balls': white_balls,
+                                'special_ball': fireball,
+                                'multiplier': None,
+                                'game_name': f"{self.game_name} {period}"
+                            })
+                    except Exception:
+                        continue
+            except Exception as e:
+                logger.error(f"Failed to fetch {self.game_name} {period}: {e}")
+        return draws
+        
+    def sync_to_db(self, db: Session):
+        """
+        JMc - [2026-03-18] - Override sync_to_db for Texas Pick games (order matters).
+        Includes batch commits to prevent OOM kills on 100k+ row CSVs.
+        """
+        try:
+            raw_draws = self.fetch_data()
+        except Exception as e:
+            logger.error(f"Failed to fetch data for {self.game_name}: {e}")
+            return False
+            
+        new_records = 0
+        batch_size = 2000
+        
+        for draw in raw_draws:
+            actual_game_name = draw.get('game_name', self.game_name)
+            
+            exists = db.query(DrawRecord).filter(
+                DrawRecord.state_code == "TX",
+                DrawRecord.game_name == actual_game_name,
+                DrawRecord.draw_date == draw['date'].date()
+            ).first()
+            
+            if not exists:
+                white_str = ",".join(str(x) for x in draw['white_balls'])
+                record = DrawRecord(
+                    state_code="TX",
+                    game_name=actual_game_name,
+                    draw_date=draw['date'].date(),
+                    white_balls=white_str,
+                    special_ball=draw['special_ball'],
+                    multiplier=draw.get('multiplier')
+                )
+                db.add(record)
+                new_records += 1
+                
+                if new_records % batch_size == 0:
+                    db.commit()
+                
+        db.commit()
+        logger.info(f"[{self.game_name}] Sync complete. Added {new_records} new draws.")
+        return new_records
+
+class TexasPick3Fetcher(BaseTexasPickFetcher):
+    """
+    JMc - [2026-03-18] - Fetches Texas Pick 3.
+    """
+    game_name = "TexasPick3"
+    num_balls = 3
+    urls = {
+        "Morning": "https://www.texaslottery.com/export/sites/lottery/Games/Pick_3/Winning_Numbers/pick3morning.csv",
+        "Day": "https://www.texaslottery.com/export/sites/lottery/Games/Pick_3/Winning_Numbers/pick3day.csv",
+        "Evening": "https://www.texaslottery.com/export/sites/lottery/Games/Pick_3/Winning_Numbers/pick3evening.csv",
+        "Night": "https://www.texaslottery.com/export/sites/lottery/Games/Pick_3/Winning_Numbers/pick3night.csv"
+    }
+
+class TexasDaily4Fetcher(BaseTexasPickFetcher):
+    """
+    JMc - [2026-03-18] - Fetches Texas Daily 4.
+    """
+    game_name = "TexasDaily4"
+    num_balls = 4
+    urls = {
+        "Morning": "https://www.texaslottery.com/export/sites/lottery/Games/Daily_4/Winning_Numbers/daily4morning.csv",
+        "Day": "https://www.texaslottery.com/export/sites/lottery/Games/Daily_4/Winning_Numbers/daily4day.csv",
+        "Evening": "https://www.texaslottery.com/export/sites/lottery/Games/Daily_4/Winning_Numbers/daily4evening.csv",
+        "Night": "https://www.texaslottery.com/export/sites/lottery/Games/Daily_4/Winning_Numbers/daily4night.csv"
+    }
+
+class NewYorkLottoFetcher(LotteryFetcher):
+    """
+    JMc - [2026-03-18] - Fetches NY Lotto from Socrata (6/59).
+    """
+    game_name = "NewYorkLotto"
+    state_code = "NY"
+    url = "https://data.ny.gov/resource/6nbc-h7bj.json"
+
+    def fetch_data(self):
+        response = requests.get(self.url, timeout=10)
+        response.raise_for_status()
+        data = response.json()
+        
+        draws = []
+        for item in data:
+            try:
+                # Socrata date format: "2026-03-14T00:00:00.000"
+                dt = datetime.fromisoformat(item['draw_date'].split('T')[0])
+                # Numbers are space separated: "15 30 35 43 46 56"
+                white_balls = [int(x) for x in item['winning_numbers'].split()]
+                bonus = int(item['bonus'])
+                
+                draws.append({
+                    'date': dt,
+                    'white_balls': white_balls,
+                    'special_ball': bonus,
+                    'multiplier': None
+                })
+            except Exception:
+                continue
+        return draws
+
+class NewYorkTake5Fetcher(LotteryFetcher):
+    """
+    JMc - [2026-03-18] - Fetches NY Take 5 from Socrata (5/39).
+    Splits Midday and Evening into separate game entries.
+    """
+    game_name = "NewYorkTake5"
+    state_code = "NY"
+    url = "https://data.ny.gov/resource/dg63-4siq.json"
+
+    def fetch_data(self):
+        response = requests.get(self.url, timeout=10)
+        response.raise_for_status()
+        data = response.json()
+        
+        draws = []
+        for item in data:
+            try:
+                dt = datetime.fromisoformat(item['draw_date'].split('T')[0])
+                
+                if 'midday_winning_numbers' in item:
+                    mid_balls = [int(x) for x in item['midday_winning_numbers'].split()]
+                    draws.append({
+                        'date': dt,
+                        'white_balls': mid_balls,
+                        'special_ball': None,
+                        'multiplier': None,
+                        'game_name': f"{self.game_name} Midday"
+                    })
+                    
+                if 'evening_winning_numbers' in item:
+                    eve_balls = [int(x) for x in item['evening_winning_numbers'].split()]
+                    draws.append({
+                        'date': dt,
+                        'white_balls': eve_balls,
+                        'special_ball': None,
+                        'multiplier': None,
+                        'game_name': f"{self.game_name} Evening"
+                    })
+            except Exception:
+                continue
+        return draws
+
+    def sync_to_db(self, db: Session):
+        try:
+            raw_draws = self.fetch_data()
+        except Exception as e:
+            logger.error(f"Failed to fetch data for {self.game_name}: {e}")
+            return False
+            
+        new_records = 0
+        for draw in raw_draws:
+            actual_game_name = draw.get('game_name', self.game_name)
+            exists = db.query(DrawRecord).filter(
+                DrawRecord.state_code == self.state_code,
+                DrawRecord.game_name == actual_game_name,
+                DrawRecord.draw_date == draw['date'].date()
+            ).first()
+            
+            if not exists:
+                sorted_whites = sorted(draw['white_balls'])
+                white_str = ",".join(str(x) for x in sorted_whites)
+                record = DrawRecord(
+                    state_code=self.state_code,
+                    game_name=actual_game_name,
+                    draw_date=draw['date'].date(),
+                    white_balls=white_str,
+                    special_ball=draw['special_ball'],
+                    multiplier=draw.get('multiplier')
+                )
+                db.add(record)
+                new_records += 1
+        db.commit()
+        return new_records
+
+class NewYorkPickFetcher(LotteryFetcher):
+    """
+    JMc - [2026-03-18] - Base for NY Numbers (Pick 3) and Win 4.
+    """
+    state_code = "NY"
+    url = "https://data.ny.gov/resource/hsys-3def.json"
+
+    def fetch_data(self):
+        response = requests.get(self.url, timeout=10)
+        response.raise_for_status()
+        data = response.json()
+        
+        draws = []
+        for item in data:
+            try:
+                dt = datetime.fromisoformat(item['draw_date'].split('T')[0])
+                
+                # Pick 3 (Numbers)
+                if self.mode == "numbers":
+                    if 'midday_daily' in item:
+                        balls = [int(d) for d in item['midday_daily']]
+                        draws.append({
+                            'date': dt,
+                            'white_balls': balls,
+                            'special_ball': None,
+                            'multiplier': None,
+                            'game_name': f"{self.game_name} Midday"
+                        })
+                    if 'evening_daily' in item:
+                        balls = [int(d) for d in item['evening_daily']]
+                        draws.append({
+                            'date': dt,
+                            'white_balls': balls,
+                            'special_ball': None,
+                            'multiplier': None,
+                            'game_name': f"{self.game_name} Evening"
+                        })
+                
+                # Pick 4 (Win 4)
+                elif self.mode == "win4":
+                    if 'midday_win_4' in item:
+                        balls = [int(d) for d in item['midday_win_4']]
+                        draws.append({
+                            'date': dt,
+                            'white_balls': balls,
+                            'special_ball': None,
+                            'multiplier': None,
+                            'game_name': f"{self.game_name} Midday"
+                        })
+                    if 'evening_win_4' in item:
+                        balls = [int(d) for d in item['evening_win_4']]
+                        draws.append({
+                            'date': dt,
+                            'white_balls': balls,
+                            'special_ball': None,
+                            'multiplier': None,
+                            'game_name': f"{self.game_name} Evening"
+                        })
+            except Exception:
+                continue
+        return draws
+
+    def sync_to_db(self, db: Session):
+        try:
+            raw_draws = self.fetch_data()
+        except Exception as e:
+            logger.error(f"Failed to fetch data for {self.game_name}: {e}")
+            return False
+            
+        new_records = 0
+        for draw in raw_draws:
+            actual_game_name = draw.get('game_name', self.game_name)
+            exists = db.query(DrawRecord).filter(
+                DrawRecord.state_code == self.state_code,
+                DrawRecord.game_name == actual_game_name,
+                DrawRecord.draw_date == draw['date'].date()
+            ).first()
+            
+            if not exists:
+                # Order matters for Pick games
+                white_str = ",".join(str(x) for x in draw['white_balls'])
+                record = DrawRecord(
+                    state_code=self.state_code,
+                    game_name=actual_game_name,
+                    draw_date=draw['date'].date(),
+                    white_balls=white_str,
+                    special_ball=draw['special_ball'],
+                    multiplier=draw.get('multiplier')
+                )
+                db.add(record)
+                new_records += 1
+        db.commit()
+        return new_records
+
+class NewYorkPick3Fetcher(NewYorkPickFetcher):
+    game_name = "NewYorkNumbers"
+    mode = "numbers"
+
+class NewYorkPick4Fetcher(NewYorkPickFetcher):
+    game_name = "NewYorkWin4"
+    mode = "win4"

@@ -16,7 +16,14 @@ from app.services.fetchers import (
     VirginiaCash5Fetcher,
     VirginiaPick5Fetcher,
     VirginiaPick4Fetcher,
-    VirginiaPick3Fetcher
+    VirginiaPick3Fetcher,
+    TexasCashFiveFetcher,
+    TexasPick3Fetcher,
+    TexasDaily4Fetcher,
+    NewYorkLottoFetcher,
+    NewYorkTake5Fetcher,
+    NewYorkPick3Fetcher,
+    NewYorkPick4Fetcher
 )
 from app.services.engine import LotteryMathEngine
 from app.services.permutation_engine import PermutationMathEngine
@@ -34,6 +41,15 @@ GAMES = {
         "white_max": 69,
         "special_max": 26,
         "fetcher": VirginiaPowerballFetcher,
+        "scraper_config": {
+            "url": "https://www.valottery.com/data/draw-games/powerball",
+            "game_id": "game-20",
+            "type": "scrape"
+        },
+        "scouter_config": {
+            "max_start_ball": 34,
+            "max_consecutive": 2
+        },
         "prize_tiers": {
             (5, True): "JACKPOT",
             (5, False): 1000000,
@@ -51,6 +67,15 @@ GAMES = {
         "white_max": 70,
         "special_max": 24, # Post 2025 rule
         "fetcher": VirginiaMegaMillionsFetcher,
+        "scraper_config": {
+            "url": "https://www.valottery.com/data/draw-games/megamillions",
+            "game_id": "game-15",
+            "type": "scrape"
+        },
+        "scouter_config": {
+            "max_start_ball": 20,
+            "max_consecutive": 2
+        },
         "prize_tiers": {
             (5, True): "JACKPOT",
             (5, False): 1000000,
@@ -63,11 +88,20 @@ GAMES = {
             (0, True): 2
         }
     },
-    "Cash4Life": {
+    "VirginiaCash4Life": {
         "state": "VA",
         "white_max": 60,
         "special_max": 4,
         "fetcher": VirginiaCash4LifeFetcher,
+        "scraper_config": {
+            "type": "fixed",
+            "jackpot": "$1,000/Day",
+            "next_draw": "Draws Daily 9:00 PM"
+        },
+        "scouter_config": {
+            "max_start_ball": 34,
+            "max_consecutive": 2
+        },
         "prize_tiers": {
             (5, True): "JACKPOT (1000/day)",
             (5, False): "1000/week",
@@ -80,11 +114,21 @@ GAMES = {
             (1, True): 2
         }
     },
-    "Cash5": {
+    "VirginiaCash5": {
         "state": "VA",
         "white_max": 45,
         "special_max": 0, # No special ball
         "fetcher": VirginiaCash5Fetcher,
+        "scraper_config": {
+            "url": "https://www.valottery.com/data/draw-games/cash5",
+            "game_id": "game-1030",
+            "type": "scrape_amount_only",
+            "next_draw": "Draws Daily 11:00 PM"
+        },
+        "scouter_config": {
+            "max_start_ball": 20,
+            "max_consecutive": 2
+        },
         "prize_tiers": {
             (5, False): "JACKPOT",
             (4, False): 200,
@@ -92,31 +136,202 @@ GAMES = {
             (2, False): 1
         }
     },
-    "Pick5": {
+    "VirginiaPick5": {
         "state": "VA",
         "white_max": 9,
         "special_max": 0,
         "fetcher": VirginiaPick5Fetcher,
+        "scraper_config": {
+            "type": "fixed",
+            "jackpot": "$50,000 Top Prize",
+            "next_draw": "Draws Daily 1:59 PM & 11:00 PM"
+        },
+        "scouter_config": {
+            "min_sum": 20,
+            "max_sum": 26,
+            "max_repeats": 3
+        },
         "prize_tiers": {
             (5, False): 50000
         }
     },
-    "Pick4": {
+    "VirginiaPick4": {
         "state": "VA",
         "white_max": 9,
         "special_max": 0,
         "fetcher": VirginiaPick4Fetcher,
+        "scraper_config": {
+            "type": "fixed",
+            "jackpot": "$5,000 Top Prize",
+            "next_draw": "Draws Daily 1:59 PM & 11:00 PM"
+        },
+        "scouter_config": {
+            "min_sum": 16,
+            "max_sum": 20,
+            "max_repeats": 2
+        },
         "prize_tiers": {
             (4, False): 5000
         }
     },
-    "Pick3": {
+    "VirginiaPick3": {
         "state": "VA",
         "white_max": 9,
         "special_max": 0,
         "fetcher": VirginiaPick3Fetcher,
+        "scraper_config": {
+            "type": "fixed",
+            "jackpot": "$500 Top Prize",
+            "next_draw": "Draws Daily 1:59 PM & 11:00 PM"
+        },
+        "scouter_config": {
+            "min_sum": 11,
+            "max_sum": 16,
+            "max_repeats": 2
+        },
         "prize_tiers": {
             (3, False): 500
+        }
+    },
+    "TexasCashFive": {
+        "state": "TX",
+        "white_max": 35,
+        "special_max": 0,
+        "fetcher": TexasCashFiveFetcher,
+        "scraper_config": {
+            "type": "fixed",
+            "jackpot": "$25,000 Top Prize",
+            "next_draw": "Draws Daily 10:12 PM CT"
+        },
+        "scouter_config": {
+            "max_start_ball": 15, # JMc - 2026-03-18 - Lower spread for a 35 ball game compared to 45 ball Cash5
+            "max_consecutive": 2
+        },
+        "prize_tiers": {
+            (5, False): "JACKPOT",
+            (4, False): 350,
+            (3, False): 15,
+            (2, False): 2 # Free ticket usually, count as 2 for ROI
+        }
+    },
+    "TexasPick3": {
+        "state": "TX",
+        "white_max": 9,
+        "special_max": 0,
+        "fetcher": TexasPick3Fetcher,
+        "scraper_config": {
+            "type": "fixed",
+            "jackpot": "$500 Top Prize",
+            "next_draw": "Draws 4x Daily (Mon-Sat)"
+        },
+        "scouter_config": {
+            "min_sum": 11,
+            "max_sum": 16,
+            "max_repeats": 2
+        },
+        "prize_tiers": {
+            (3, False): 500
+        }
+    },
+    "TexasDaily4": {
+        "state": "TX",
+        "white_max": 9,
+        "special_max": 0,
+        "fetcher": TexasDaily4Fetcher,
+        "scraper_config": {
+            "type": "fixed",
+            "jackpot": "$5,000 Top Prize",
+            "next_draw": "Draws 4x Daily (Mon-Sat)"
+        },
+        "scouter_config": {
+            "min_sum": 16,
+            "max_sum": 20,
+            "max_repeats": 2
+        },
+        "prize_tiers": {
+            (4, False): 5000
+        }
+    },
+    "NewYorkLotto": {
+        "state": "NY",
+        "white_max": 59,
+        "special_max": 59, # Bonus ball is from same pool
+        "fetcher": NewYorkLottoFetcher,
+        "scraper_config": {
+            "type": "fixed",
+            "jackpot": "Variable",
+            "next_draw": "Wed & Sat 8:15 PM"
+        },
+        "scouter_config": {
+            "max_start_ball": 25,
+            "max_consecutive": 2,
+            "valid_odd_counts": [2, 3, 4] # JMc - [2026-03-18] - 6-ball game logic.
+        },
+        "prize_tiers": {
+            (6, False): "JACKPOT",
+            (5, True): 25000,
+            (5, False): 1500,
+            (4, False): 15,
+            (3, False): 1
+        }
+    },
+    "NewYorkTake5": {
+        "state": "NY",
+        "white_max": 39,
+        "special_max": 0,
+        "fetcher": NewYorkTake5Fetcher,
+        "scraper_config": {
+            "type": "fixed",
+            "jackpot": "Rolling",
+            "next_draw": "Daily 2:30 PM & 10:30 PM"
+        },
+        "scouter_config": {
+            "max_start_ball": 15,
+            "max_consecutive": 2
+        },
+        "prize_tiers": {
+            (5, False): "JACKPOT",
+            (4, False): 500,
+            (3, False): 25,
+            (2, False): 2
+        }
+    },
+    "NewYorkNumbers": {
+        "state": "NY",
+        "white_max": 9,
+        "special_max": 0,
+        "fetcher": NewYorkPick3Fetcher,
+        "scraper_config": {
+            "type": "fixed",
+            "jackpot": "$500 Top Prize",
+            "next_draw": "Daily 2:30 PM & 10:30 PM"
+        },
+        "scouter_config": {
+            "min_sum": 11,
+            "max_sum": 16,
+            "max_repeats": 2
+        },
+        "prize_tiers": {
+            (3, False): 500
+        }
+    },
+    "NewYorkWin4": {
+        "state": "NY",
+        "white_max": 9,
+        "special_max": 0,
+        "fetcher": NewYorkPick4Fetcher,
+        "scraper_config": {
+            "type": "fixed",
+            "jackpot": "$5,000 Top Prize",
+            "next_draw": "Daily 2:30 PM & 10:30 PM"
+        },
+        "scouter_config": {
+            "min_sum": 16,
+            "max_sum": 20,
+            "max_repeats": 2
+        },
+        "prize_tiers": {
+            (4, False): 5000
         }
     }
 }
@@ -144,6 +359,15 @@ async def lifespan(app: FastAPI):
 app = FastAPI(title="Lottery Oracle API", lifespan=lifespan)
 app.include_router(auth.router, prefix="/api/auth", tags=["auth"])
 
+@app.get("/api/states")
+def list_states():
+    """
+    JMc - [2026-03-18] - Dynamically route the UI state selector based on configured GAMES.
+    """
+    states = list(set(v["state"] for v in GAMES.values() if v["state"] != "NAT"))
+    states.sort()
+    return {"states": states}
+
 @app.get("/api/games")
 def list_games(state: str = "VA"):
     """
@@ -157,7 +381,7 @@ def get_live_jackpots(state: str = "VA"):
     """
     JMc - [2026-03-18] - Return jackpots filtered by the active state.
     """
-    all_jackpots = JackpotScraper.get_live_data()
+    all_jackpots = JackpotScraper.get_live_data(GAMES)
     filtered = {}
     for game_name, data in all_jackpots.items():
         if game_name in GAMES and GAMES[game_name]["state"] in ("NAT", state):
@@ -240,15 +464,17 @@ def generate_tickets(game_name: str, num_tickets: int = 5, db: Session = Depends
         formatted_history.append({"date": r.draw_date, "white_balls": wb, "special_ball": r.special_ball})
         previous_jackpots.add(f"{r.white_balls}:{r.special_ball}")
         
-    if game_name.startswith("Pick"):
+    scouter_config = config.get("scouter_config", {})
+    
+    if "Pick" in game_name or "Daily" in game_name or "Numbers" in game_name or "Win4" in game_name:
         # JMc - [2026-03-16] - Route permutation games to the Cartesian engine.
-        num_digits = 3 if game_name == "Pick3" else (4 if game_name == "Pick4" else 5)
-        engine = PermutationMathEngine(game_name, formatted_history, num_digits, previous_jackpots)
+        num_digits = 3 if "Pick3" in game_name or "Numbers" in game_name else (4 if "Pick4" in game_name or "Daily4" in game_name or "Win4" in game_name else 5)
+        engine = PermutationMathEngine(game_name, formatted_history, num_digits, previous_jackpots, scouter_config)
         tickets, pool = engine.generate_tickets(num_tickets)
         special_pool = []
     else:
         # JMc - [2026-03-16] - Route combinatorial games to the Wheeling engine.
-        engine = LotteryMathEngine(game_name, formatted_history, config["white_max"], config["special_max"], previous_jackpots)
+        engine = LotteryMathEngine(game_name, formatted_history, config["white_max"], config["special_max"], previous_jackpots, scouter_config)
         sp_size = 3 if config["special_max"] > 0 else 0
         pool, special_pool = engine.generate_smart_pool(pool_size=15, special_pool_size=sp_size)
         tickets = engine.generate_wheeled_tickets(pool, special_pool, num_tickets)
@@ -358,7 +584,7 @@ def check_batch_results(batch_id: int, db: Session = Depends(get_db), current_us
             ticket_wb_set = set(ticket_wb_list)
             ticket_sb = ticket.ticket_special_ball
             
-            is_pick = batch.game_name.startswith("Pick")
+            is_pick = "Pick" in batch.game_name or "Daily" in batch.game_name or "Numbers" in batch.game_name or "Win4" in batch.game_name
             
             if is_pick:
                 # JMc - [2026-03-16] - Exact Match logic for permutation games (order matters).

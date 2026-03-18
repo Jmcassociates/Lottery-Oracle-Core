@@ -14,7 +14,7 @@ def init():
     db = next(get_db())
     
     for game_name, config in GAMES.items():
-        count = db.query(DrawRecord).filter(DrawRecord.game_name == game_name).count()
+        count = db.query(DrawRecord).filter(DrawRecord.game_name.startswith(game_name)).count()
         if count == 0:
             logger.info(f"Database empty for {game_name}. Running initial sync...")
             fetcher = config["fetcher"]()

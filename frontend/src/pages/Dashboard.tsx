@@ -10,6 +10,7 @@ interface JackpotData {
 }
 
 const Dashboard = () => {
+  const [statesList, setStatesList] = useState<string[]>(['VA']);
   const [games, setGames] = useState<string[]>([]);
   const [selectedGame, setSelectedGame] = useState<string>('Powerball');
   const [selectedState, setSelectedState] = useState<string>('VA');
@@ -29,9 +30,27 @@ const Dashboard = () => {
   const [numTickets, setNumTickets] = useState<number>(tier === 'pro' ? 20 : 5);
 
   useEffect(() => {
+    // JMc - [2026-03-18] - Fetch the available configured states autonomously.
+    const ts = new Date().getTime();
+    fetch(`/api/states?_t=${ts}`)
+      .then(res => res.json())
+      .then(data => {
+        if (data.states && data.states.length > 0) {
+          setStatesList(data.states);
+          if (!data.states.includes(selectedState)) {
+             setSelectedState(data.states[0]);
+          }
+        }
+      })
+      .catch(err => console.error("Failed to load states:", err));
+  }, []);
+
+  useEffect(() => {
     // JMc - [2026-03-16] - Dynamically fetch available games from the API configuration.
+    // JMc - [2026-03-18] - Appending timestamp to prevent aggressive browser caching on state switch.
     console.log(`Dashboard mount - fetching games for ${selectedState}...`);
-    fetch(`/api/games?state=${selectedState}`)
+    const ts = new Date().getTime();
+    fetch(`/api/games?state=${selectedState}&_t=${ts}`)
       .then(res => res.json())
       .then(data => {
         console.log("Games loaded:", data);
@@ -42,7 +61,7 @@ const Dashboard = () => {
           // JMc - [2026-03-16] - Fetch recent draws for all games
           data.games.forEach((game: string) => {
             console.log(`Fetching history for ${game}...`);
-            fetchWithAuth(`/api/history/${game}?limit=1`)
+            fetchWithAuth(`/api/history/${game}?limit=1&_t=${ts}`)
               .then(res => {
                 if (!res.ok) throw new Error(`HTTP ${res.status}`);
                 return res.json();
@@ -60,7 +79,7 @@ const Dashboard = () => {
       .catch(err => console.error("Failed to load games:", err));
       
     // JMc - [2026-03-16] - Pull live jackpots from the scraper
-    fetch(`/api/jackpots?state=${selectedState}`)
+    fetch(`/api/jackpots?state=${selectedState}&_t=${ts}`)
       .then(res => res.json())
       .then(data => {
         console.log("Jackpots loaded:", data);
@@ -185,13 +204,14 @@ const Dashboard = () => {
           <p className="subtitle">Tier Protocol: <span style={{ color: 'var(--accent)', textTransform: 'uppercase' }}>{tier}</span></p>
         </div>
         <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
-          <select 
-            value={selectedState} 
+          <select
+            value={selectedState}
             onChange={(e) => setSelectedState(e.target.value)}
             style={{ padding: '0.5rem', borderRadius: '4px', background: 'var(--panel-bg)', color: 'var(--text-main)', border: '1px solid var(--border)' }}
           >
-            <option value="VA">Virginia (VA)</option>
-            {/* Future states can be added here */}
+            {statesList.map(st => (
+              <option key={st} value={st}>{st === 'VA' ? 'Virginia (VA)' : st === 'TX' ? 'Texas (TX)' : st}</option>
+            ))}
           </select>
           <button onClick={logout} className="btn-secondary">Logout</button>
         </div>

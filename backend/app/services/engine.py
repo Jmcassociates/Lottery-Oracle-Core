@@ -3,20 +3,21 @@ from collections import defaultdict, Counter
 
 class PatternScouter:
     """
-    JMc - [2026-03-16] - The Mathematical Bouncer.
-    Filters out Combinatorial combinations that exist on the extreme, dead edges of the statistical bell curve.
+    JMc - [2026-03-18] - The Autonomous Mathematical Bouncer.
+    Filters out Combinatorial combinations that exist on the dead edges of the statistical bell curve.
     """
     @staticmethod
-    def is_valid_pattern(ticket: tuple, game_name: str, max_white: int) -> bool:
-        # JMc - [2026-03-16] - 1. Odd/Even Constraint. Empirical data shows 64-68% of draws are 3:2 or 2:3.
-        # We reject tickets that are all odds, all evens, or 4:1 ratios because they are mathematical outliers.
+    def is_valid_pattern(ticket: tuple, scouter_config: dict) -> bool:
+        valid_odd_counts = scouter_config.get("valid_odd_counts", [2, 3])
+        max_consecutive = scouter_config.get("max_consecutive", 2)
+        max_start_ball = scouter_config.get("max_start_ball", 30)
+
+        # 1. Odd/Even Constraint.
         odd_count = sum(1 for n in ticket if n % 2 != 0)
-        if odd_count not in [2, 3]:
+        if odd_count not in valid_odd_counts:
             return False
 
-        # JMc - [2026-03-17] - 2. Consecutive Sequence Constraint. 
-        # Empirical data shows 3-in-a-row hits ~1.05% of the time in Powerball, 0.00% in Mega Millions.
-        # It is a mathematical trap. We reject any ticket with 3 or more consecutive numbers.
+        # 2. Consecutive Sequence Constraint. 
         sorted_ticket = sorted(ticket)
         max_seq = 1
         current_seq = 1
@@ -28,47 +29,84 @@ class PatternScouter:
             else:
                 current_seq = 1
                 
-        if max_seq >= 3:
+        if max_seq > max_consecutive:
             return False
 
-        # JMc - [2026-03-16] - 3. Zone Spread Constraint.
-        # We target the starting number based on historical spread behavior.
+        # 3. Zone Spread Constraint.
         first_ball = sorted_ticket[0]
-
-        # JMc - [2026-03-16] - MegaMillions specifically hates starting high (only 7% start > 20).
-        # We aggressively route around any ticket starting > 20 for MegaMillions.
-        if game_name == "MegaMillions" and first_ball > 20:
-            return False
-            
-        # JMc - [2026-03-16] - Powerball allows a wider spread, but only 3% of draws start > 34.
-        if game_name == "Powerball" and first_ball > 34:
-            return False
-
-        # JMc - [2026-03-16] - Cash4Life behaves similarly to Powerball, rejecting > 34.
-        if game_name == "Cash4Life" and first_ball > 34:
-            return False
-
-        # JMc - [2026-03-16] - Cash5 has a massive 1-10 clustering (74.4% of draws). Reject > 20.
-        if game_name == "Cash5" and first_ball > 20:
+        if first_ball > max_start_ball:
             return False
 
         return True
 
 class LotteryMathEngine:
     """
-    JMc - [2026-03-16] - The Combinatorial Engine for games using Sampling Without Replacement.
-    Uses Markov Chains and Poisson Overdue tension to build a targeted pool, then applies Greedy Wheeling.
+    JMc - [2026-03-18] - The Combinatorial Engine for games using Sampling Without Replacement.
+    Autonomously analyzes historical data to define its own filtering parameters.
     """
-    def __init__(self, game_name, historical_draws_dicts, white_max, special_max, previous_jackpots=None):
-        """
-        historical_draws_dicts: list of dicts [{'date': dt, 'white_balls': [1,2,3], 'special_ball': 4}]
-        previous_jackpots: set of strings e.g. {"14,21,33,42,59:24", ...}
-        """
+    def __init__(self, game_name, historical_draws_dicts, white_max, special_max, previous_jackpots=None, scouter_config=None):
         self.game_name = game_name
         self.history = historical_draws_dicts
         self.white_max = white_max
         self.special_max = special_max
         self.previous_jackpots = previous_jackpots or set()
+        
+        # JMc - [2026-03-18] - Determine game parameters from empirical data.
+        if self.history:
+            self.numbers_per_ticket = len(self.history[-1]['white_balls'])
+            # Ignore provided config and compute reality natively
+            self.scouter_config = self._analyze_bell_curve()
+        else:
+            self.numbers_per_ticket = 5
+            self.scouter_config = scouter_config or {"valid_odd_counts": [2, 3], "max_consecutive": 2, "max_start_ball": 34}
+
+    def _analyze_bell_curve(self):
+        """
+        JMc - [2026-03-18] - The Autonomous Scouter Profiler.
+        Dynamically analyzes the empirical dataset to establish 90th percentile constraints.
+        If a pattern occurs in less than ~5% of draws, it is mathematically blocked.
+        """
+        odd_counts = Counter()
+        consecutives = Counter()
+        start_balls = []
+        total = len(self.history)
+        
+        for draw in self.history:
+            wb = sorted(draw['white_balls'])
+            
+            odds = sum(1 for n in wb if n % 2 != 0)
+            odd_counts[odds] += 1
+            
+            start_balls.append(wb[0])
+            
+            max_seq = 1
+            current_seq = 1
+            for i in range(1, len(wb)):
+                if wb[i] == wb[i-1] + 1:
+                    current_seq += 1
+                    if current_seq > max_seq:
+                        max_seq = current_seq
+                else:
+                    current_seq = 1
+            consecutives[max_seq] += 1
+            
+        # Extract acceptable patterns (> 5% frequency)
+        valid_odds = [k for k, v in odd_counts.items() if (v / total) >= 0.05]
+        if not valid_odds:
+            valid_odds = [self.numbers_per_ticket // 2, (self.numbers_per_ticket // 2) + 1]
+            
+        valid_consec = [k for k, v in consecutives.items() if (v / total) >= 0.05]
+        max_consec = max(valid_consec) if valid_consec else 2
+        
+        # Get 95th percentile for starting balls to capture almost everything but extreme noise
+        start_balls.sort()
+        max_start = start_balls[int(total * 0.95)] if start_balls else (self.white_max // 2)
+        
+        return {
+            "valid_odd_counts": valid_odds,
+            "max_consecutive": max_consec,
+            "max_start_ball": max_start
+        }
 
     def get_markov_transitions(self):
         """
@@ -173,13 +211,13 @@ class LotteryMathEngine:
         signature = f"{white_str}:{special_ball}"
         return signature in self.previous_jackpots
 
-    def generate_wheeled_tickets(self, pool, special_pool, num_tickets, numbers_per_ticket=5):
+    def generate_wheeled_tickets(self, pool, special_pool, num_tickets):
         """
         JMc - [2026-03-16] - The Pragmatist Algorithm.
         Applies Greedy Combinatorial Wheeling to guarantee maximum unique triplet coverage
         with zero redundant mathematical overlap, filtered by the PatternScouter.
         """
-        all_possible_tickets = list(itertools.combinations(pool, numbers_per_ticket))
+        all_possible_tickets = list(itertools.combinations(pool, self.numbers_per_ticket))
         
         covered_triplets = set()
         selected_tickets = []
@@ -195,7 +233,7 @@ class LotteryMathEngine:
                     continue
                 
                 # JMc - [2026-03-16] - 1. Pattern Scouter Filter (The Bell Curve Check)
-                if not PatternScouter.is_valid_pattern(ticket, self.game_name, self.white_max):
+                if not PatternScouter.is_valid_pattern(ticket, self.scouter_config):
                     continue
 
                 # JMc - [2026-03-16] - 2. Historical Jackpot Filter

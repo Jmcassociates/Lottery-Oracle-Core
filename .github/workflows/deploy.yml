@@ -1,0 +1,114 @@
+name: Oracle CI/CD Pipeline
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+env:
+  PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
+  REGION: us-east1
+  BACKEND_SERVICE_NAME: oracle-backend
+  FRONTEND_SERVICE_NAME: oracle-frontend
+  # JMc - 2026-03-18 - Artifact Registry Repository
+  GAR_LOCATION: us-east1-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/lottery-oracle
+  
+jobs:
+  test-and-lint:
+    name: Run Mathematical Verification
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout Repository
+      uses: actions/checkout@v4
+
+    - name: Set up Python 3.11
+      uses: actions/setup-python@v5
+      with:
+        python-version: "3.11"
+        cache: 'pip'
+
+    - name: Install Backend Dependencies
+      run: |
+        cd backend
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        pip install pytest httpx
+
+    # JMc - 2026-03-18 - Enforce mathematical integrity before touching production
+    - name: Run Backend Tests
+      run: |
+        cd backend
+        pytest test_engine_patterns.py test_apollo.py -v
+
+  build-and-deploy:
+    name: Deploy to Google Cloud Run
+    needs: test-and-lint
+    runs-on: ubuntu-latest
+    # Only run deployment on pushes to main, not on PRs
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    
+    permissions:
+      contents: 'read'
+      id-token: 'write'
+
+    steps:
+    - name: Checkout Repository
+      uses: actions/checkout@v4
+
+    - name: Google Auth
+      id: auth
+      uses: 'google-github-actions/auth@v2'
+      with:
+        credentials_json: '${{ secrets.GCP_SA_KEY }}'
+
+    - name: Set up Cloud SDK
+      uses: 'google-github-actions/setup-gcloud@v2'
+
+    - name: Docker Auth for Artifact Registry
+      run: |-
+        gcloud auth configure-docker us-east1-docker.pkg.dev
+
+    # ---------------------------------------------------------
+    # BACKEND DEPLOYMENT (FastAPI + SQL Cloud Proxy)
+    # ---------------------------------------------------------
+    - name: Build and Push Backend Image
+      run: |-
+        cd backend
+        docker build -t "${GAR_LOCATION}/${BACKEND_SERVICE_NAME}:${GITHUB_SHA}" .
+        docker push "${GAR_LOCATION}/${BACKEND_SERVICE_NAME}:${GITHUB_SHA}"
+
+    - name: Deploy Backend to Cloud Run
+      id: deploy-backend
+      uses: google-github-actions/deploy-cloudrun@v2
+      with:
+        service: ${{ env.BACKEND_SERVICE_NAME }}
+        region: ${{ env.REGION }}
+        image: ${{ env.GAR_LOCATION }}/${{ env.BACKEND_SERVICE_NAME }}:${{ github.sha }}
+        flags: '--allow-unauthenticated'
+        env_vars: |
+          DATABASE_URL=${{ secrets.PROD_DATABASE_URL }}
+          JWT_SECRET=${{ secrets.JWT_SECRET }}
+
+    # ---------------------------------------------------------
+    # FRONTEND DEPLOYMENT (React + Nginx Reverse Proxy)
+    # ---------------------------------------------------------
+    # JMc - [2026-03-18] - We must dynamically inject the newly deployed Backend URL 
+    # into the Nginx configuration or Vite build step before deploying the frontend container.
+    - name: Inject Backend URL into Frontend Build
+      run: |
+        echo "VITE_API_URL=${{ steps.deploy-backend.outputs.url }}" > frontend/.env.production
+
+    - name: Build and Push Frontend Image
+      run: |-
+        docker build -t "${GAR_LOCATION}/${FRONTEND_SERVICE_NAME}:${GITHUB_SHA}" -f frontend/Dockerfile .
+        docker push "${GAR_LOCATION}/${FRONTEND_SERVICE_NAME}:${GITHUB_SHA}"
+
+    - name: Deploy Frontend to Cloud Run
+      uses: google-github-actions/deploy-cloudrun@v2
+      with:
+        service: ${{ env.FRONTEND_SERVICE_NAME }}
+        region: ${{ env.REGION }}
+        image: ${{ env.GAR_LOCATION }}/${{ env.FRONTEND_SERVICE_NAME }}:${{ github.sha }}
+        flags: '--allow-unauthenticated'
