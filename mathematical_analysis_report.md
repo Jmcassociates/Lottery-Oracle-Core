@@ -21,6 +21,14 @@ Both games have nearly identical board sizes (1-69 for Powerball, 1-70 for Mega 
 *   **Cash4Life (1-60):** Behaves very similarly to Powerball. A strong 3-10 starting block (45%) with a hard cliff above 34. The engine rejects > 34 starts.
 *   **Cash 5 (1-45):** Because the board is so small, the balls are heavily clustered at the bottom. An astonishing **74.4%** of all Cash 5 draws start with a number between 1 and 10. Only 4% of draws start above 20. The Oracle Pattern Scouter completely locks out any Cash 5 ticket that starts higher than 20.
 
+### The Consecutive Sequence Trap
+A common misconception is that "randomness" means any combination is equally likely in practice. We audited the historical occurrence of 3-in-a-row consecutive numbers (e.g., 4, 5, 6):
+*   **Powerball:** Happened **1.05%** of the time (14 times in 1,329 draws).
+*   **Mega Millions:** Happened **0.00%** of the time (0 times in 98 post-matrix-change draws).
+*   **Cash4Life:** Happened **1.68%** of the time.
+*   **Cash 5:** Happened **3.05%** of the time.
+*   **The Oracle Constraint:** The Pattern Scouter enforces a hard lockout on any ticket containing 3 or more consecutive numbers. A 1% to 3% historical probability is a mathematical trap; the Oracle refuses to deploy capital on it.
+
 ---
 
 ## Part 2: Permutation Games (Pick 3, Pick 4, Pick 5)

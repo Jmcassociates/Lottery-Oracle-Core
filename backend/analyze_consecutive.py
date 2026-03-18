@@ -46,3 +46,5 @@ def analyze_consecutive(game_name):
 if __name__ == "__main__":
     analyze_consecutive("Powerball")
     analyze_consecutive("MegaMillions")
+    analyze_consecutive("Cash4Life")
+    analyze_consecutive("Cash5")
