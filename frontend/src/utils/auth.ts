@@ -12,6 +12,8 @@ export const logout = () => {
   window.location.href = '/login';
 };
 
+const API_BASE = import.meta.env.VITE_API_URL || '';
+
 export const fetchWithAuth = async (url: string, options: RequestInit = {}) => {
   const token = getToken();
   if (!token) {
@@ -21,7 +23,9 @@ export const fetchWithAuth = async (url: string, options: RequestInit = {}) => {
   const headers = new Headers(options.headers);
   headers.set('Authorization', `Bearer ${token}`);
 
-  const response = await fetch(url, {
+  const fullUrl = url.startsWith('http') ? url : `${API_BASE}${url}`;
+
+  const response = await fetch(fullUrl, {
     ...options,
     headers,
   });

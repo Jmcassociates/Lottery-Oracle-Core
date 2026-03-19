@@ -35,12 +35,14 @@ const pick3Data = [
   { sum: '17-27', freq: 15.0 },
 ];
 
+const API_BASE = import.meta.env.VITE_API_URL || '';
+
 const LandingPage = () => {
   const [jackpots, setJackpots] = useState<JackpotData | null>(null);
 
   useEffect(() => {
     // JMc - [2026-03-16] - Fetch live unauthenticated jackpots from the scraper for the marketing display.
-    fetch('/api/jackpots')
+    fetch(`${API_BASE}/api/jackpots`)
       .then(res => res.json())
       .then(data => setJackpots(data))
       .catch(err => console.error("Failed to load jackpots", err));

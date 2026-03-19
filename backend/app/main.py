@@ -335,28 +335,50 @@ GAMES = {
     }
 }
 
-scheduler = BackgroundScheduler()
-
-def scheduled_sync():
-    """Runs on a cron job to update DB."""
-    logger.info("Running scheduled database sync...")
-    db = next(get_db())
-    for game_name, config in GAMES.items():
-        fetcher = config["fetcher"]()
-        fetcher.sync_to_db(db)
-    logger.info("Sync complete.")
+from fastapi.middleware.cors import CORSMiddleware
+import threading
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     Base.metadata.create_all(bind=engine)
-    # JMc - 2026-03-15 - Running at 07:00 UTC (03:00 EDT) to ensure VA Lottery API is updated.
-    scheduler.add_job(scheduled_sync, 'cron', hour=7, minute=0)
-    scheduler.start()
     yield
-    scheduler.shutdown()
 
 app = FastAPI(title="Lottery Oracle API", lifespan=lifespan)
+
+# JMc - [2026-03-18] - Enabled CORS since React Frontend directly calls this URL in Cloud Run
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 app.include_router(auth.router, prefix="/api/auth", tags=["auth"])
+
+def run_sync_task():
+    logger.info("Running background database sync...")
+    try:
+        db = next(get_db())
+        for game_name, config in GAMES.items():
+            fetcher = config["fetcher"]()
+            fetcher.sync_to_db(db)
+        logger.info("Background sync complete.")
+    except Exception as e:
+        logger.error(f"Error during background sync: {e}")
+
+@app.post("/api/admin/sync")
+def trigger_sync(current_user: User = Depends(get_current_user)):
+    """
+    JMc - [2026-03-18] - Serverless trigger for Cloud Scheduler.
+    Executes the sync task in a background thread to avoid 5-minute Cloud Run timeouts.
+    """
+    if current_user.tier != "pro": # Or checking for an admin role
+        raise HTTPException(status_code=403, detail="Not authorized")
+    
+    thread = threading.Thread(target=run_sync_task)
+    thread.start()
+    return {"status": "Sync triggered in background"}
 
 @app.get("/api/states")
 def list_states():

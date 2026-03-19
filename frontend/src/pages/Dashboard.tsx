@@ -2,6 +2,8 @@
 import { useState, useEffect } from 'react';
 import { fetchWithAuth, getTier, setToken, logout } from '../utils/auth';
 
+const API_BASE = import.meta.env.VITE_API_URL || '';
+
 interface JackpotData {
   [game: string]: {
     jackpot: string;
@@ -32,7 +34,7 @@ const Dashboard = () => {
   useEffect(() => {
     // JMc - [2026-03-18] - Fetch the available configured states autonomously.
     const ts = new Date().getTime();
-    fetch(`/api/states?_t=${ts}`)
+    fetch(`${API_BASE}/api/states?_t=${ts}`)
       .then(res => res.json())
       .then(data => {
         if (data.states && data.states.length > 0) {
@@ -50,7 +52,7 @@ const Dashboard = () => {
     // JMc - [2026-03-18] - Appending timestamp to prevent aggressive browser caching on state switch.
     console.log(`Dashboard mount - fetching games for ${selectedState}...`);
     const ts = new Date().getTime();
-    fetch(`/api/games?state=${selectedState}&_t=${ts}`)
+    fetch(`${API_BASE}/api/games?state=${selectedState}&_t=${ts}`)
       .then(res => res.json())
       .then(data => {
         console.log("Games loaded:", data);
@@ -79,7 +81,7 @@ const Dashboard = () => {
       .catch(err => console.error("Failed to load games:", err));
       
     // JMc - [2026-03-16] - Pull live jackpots from the scraper
-    fetch(`/api/jackpots?state=${selectedState}&_t=${ts}`)
+    fetch(`${API_BASE}/api/jackpots?state=${selectedState}&_t=${ts}`)
       .then(res => res.json())
       .then(data => {
         console.log("Jackpots loaded:", data);
