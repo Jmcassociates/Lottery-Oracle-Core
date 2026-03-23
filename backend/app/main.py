@@ -341,7 +341,8 @@ import threading
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    Base.metadata.create_all(bind=engine)
+    # JMc - [2026-03-18] - DB initialization moved to manual sync trigger 
+    # to prevent boot-time crashes on connection failures.
     yield
 
 app = FastAPI(title="Lottery Oracle API", lifespan=lifespan)
