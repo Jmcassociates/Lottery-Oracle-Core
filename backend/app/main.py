@@ -29,6 +29,7 @@ from app.services.permutation_engine import PermutationMathEngine
 from app.services.scraper import JackpotScraper
 from app.services.exporter import PDFExporter
 from app.api import auth
+from migrate_v2 import migrate as run_schema_migration
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -359,6 +360,10 @@ app.include_router(auth.router, prefix="/api/auth", tags=["auth"])
 def run_sync_task():
     logger.info("Oracle - Manual Sync - Starting background ingestion...")
     try:
+        # JMc - [2026-03-18] - Ensure the database schema is up to date before syncing.
+        logger.info("Oracle - Manual Sync - Executing schema migration v2.0...")
+        run_schema_migration()
+        
         db = next(get_db())
         for game_name, config in GAMES.items():
             logger.info(f"Oracle - Manual Sync - Processing {game_name}...")
