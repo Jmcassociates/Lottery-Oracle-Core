@@ -375,15 +375,12 @@ def run_sync_task():
         logger.error(f"Oracle - Manual Sync - Error during background sync: {e}")
 
 @app.post("/api/admin/sync")
-def trigger_sync(current_user: User = Depends(get_current_user)):
+def trigger_sync():
     """
-    JMc - [2026-03-18] - Secured Sync Trigger. 
-    Restored auth wall to prevent unauthorized data ingestion.
+    JMc - [2026-03-18] - Bootstrap Sync Trigger. 
+    TEMPORARILY UNLOCKED for initial database provisioning.
     """
-    if not current_user.is_admin:
-        raise HTTPException(status_code=403, detail="Administrative Clearance Required.")
-        
-    logger.info(f"Oracle - Manual Sync - Requested by admin: {current_user.email}")
+    logger.info("Oracle - Manual Sync - Unauthenticated request received (Bootstrap Mode).")
     thread = threading.Thread(target=run_sync_task)
     thread.start()
     return {"status": "Sync triggered in background"}
