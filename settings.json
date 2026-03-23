@@ -1,0 +1,27 @@
+{
+  "mcpServers": {
+    "filesystem": {
+      "command": "/bin/bash",
+      "args": [
+        "/Users/jarvis/devprojects/Megamillions/gemini-fs-bridge.sh",
+        "/Users/jarvis/devprojects/Megamillions"
+      ]
+    }
+  },
+  "model": {
+    "name": "auto-gemini-3",
+    "thinking": {
+      "level": "high",
+      "budget": 2000
+    }
+  },
+  "general": {
+    "checkpointing": {
+      "enabled": true,
+      "autoSaveInterval": "1m"
+    }
+  },
+  "context": {
+    "contextFileName": ["GEMINI.md", "PROGRESS.md"]
+  }
+}

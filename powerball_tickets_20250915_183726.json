@@ -1,0 +1,242 @@
+[
+  {
+    "white_balls": [
+      4,
+      29,
+      43,
+      62,
+      65
+    ],
+    "powerball": 3,
+    "algorithm": "balanced",
+    "generated_at": "2025-09-15T18:37:26.732699"
+  },
+  {
+    "white_balls": [
+      13,
+      18,
+      30,
+      32,
+      68
+    ],
+    "powerball": 10,
+    "algorithm": "balanced",
+    "generated_at": "2025-09-15T18:37:26.732870"
+  },
+  {
+    "white_balls": [
+      8,
+      15,
+      30,
+      61,
+      66
+    ],
+    "powerball": 3,
+    "algorithm": "balanced",
+    "generated_at": "2025-09-15T18:37:26.732989"
+  },
+  {
+    "white_balls": [
+      13,
+      15,
+      20,
+      25,
+      27
+    ],
+    "powerball": 17,
+    "algorithm": "balanced",
+    "generated_at": "2025-09-15T18:37:26.733067"
+  },
+  {
+    "white_balls": [
+      11,
+      29,
+      40,
+      42,
+      64
+    ],
+    "powerball": 7,
+    "algorithm": "balanced",
+    "generated_at": "2025-09-15T18:37:26.733231"
+  },
+  {
+    "white_balls": [
+      8,
+      32,
+      37,
+      51,
+      66
+    ],
+    "powerball": 24,
+    "algorithm": "balanced",
+    "generated_at": "2025-09-15T18:37:26.733390"
+  },
+  {
+    "white_balls": [
+      20,
+      29,
+      30,
+      42,
+      60
+    ],
+    "powerball": 12,
+    "algorithm": "balanced",
+    "generated_at": "2025-09-15T18:37:26.733466"
+  },
+  {
+    "white_balls": [
+      18,
+      26,
+      41,
+      47,
+      54
+    ],
+    "powerball": 11,
+    "algorithm": "balanced",
+    "generated_at": "2025-09-15T18:37:26.733540"
+  },
+  {
+    "white_balls": [
+      26,
+      40,
+      45,
+      63,
+      64
+    ],
+    "powerball": 9,
+    "algorithm": "balanced",
+    "generated_at": "2025-09-15T18:37:26.733747"
+  },
+  {
+    "white_balls": [
+      3,
+      8,
+      32,
+      61,
+      63
+    ],
+    "powerball": 21,
+    "algorithm": "balanced",
+    "generated_at": "2025-09-15T18:37:26.733800"
+  },
+  {
+    "white_balls": [
+      5,
+      18,
+      24,
+      35,
+      36
+    ],
+    "powerball": 21,
+    "algorithm": "balanced",
+    "generated_at": "2025-09-15T18:37:26.733869"
+  },
+  {
+    "white_balls": [
+      21,
+      26,
+      46,
+      64,
+      69
+    ],
+    "powerball": 2,
+    "algorithm": "balanced",
+    "generated_at": "2025-09-15T18:37:26.733917"
+  },
+  {
+    "white_balls": [
+      3,
+      21,
+      36,
+      53,
+      64
+    ],
+    "powerball": 4,
+    "algorithm": "balanced",
+    "generated_at": "2025-09-15T18:37:26.733966"
+  },
+  {
+    "white_balls": [
+      17,
+      29,
+      33,
+      62,
+      64
+    ],
+    "powerball": 11,
+    "algorithm": "balanced",
+    "generated_at": "2025-09-15T18:37:26.734004"
+  },
+  {
+    "white_balls": [
+      18,
+      26,
+      36,
+      53,
+      55
+    ],
+    "powerball": 23,
+    "algorithm": "balanced",
+    "generated_at": "2025-09-15T18:37:26.734639"
+  },
+  {
+    "white_balls": [
+      4,
+      14,
+      21,
+      23,
+      49
+    ],
+    "powerball": 9,
+    "algorithm": "balanced",
+    "generated_at": "2025-09-15T18:37:26.734690"
+  },
+  {
+    "white_balls": [
+      18,
+      23,
+      36,
+      41,
+      45
+    ],
+    "powerball": 9,
+    "algorithm": "balanced",
+    "generated_at": "2025-09-15T18:37:26.734775"
+  },
+  {
+    "white_balls": [
+      9,
+      33,
+      52,
+      64,
+      69
+    ],
+    "powerball": 5,
+    "algorithm": "balanced",
+    "generated_at": "2025-09-15T18:37:26.734819"
+  },
+  {
+    "white_balls": [
+      21,
+      29,
+      33,
+      57,
+      64
+    ],
+    "powerball": 15,
+    "algorithm": "balanced",
+    "generated_at": "2025-09-15T18:37:26.734855"
+  },
+  {
+    "white_balls": [
+      37,
+      41,
+      50,
+      52,
+      58
+    ],
+    "powerball": 16,
+    "algorithm": "balanced",
+    "generated_at": "2025-09-15T18:37:26.734916"
+  }
+]

@@ -1,0 +1,38 @@
+[
+  {
+    "white_balls": [
+      17,
+      26,
+      50,
+      52,
+      57
+    ],
+    "powerball": 3,
+    "algorithm": "balanced",
+    "generated_at": "2025-09-15T18:37:14.867467"
+  },
+  {
+    "white_balls": [
+      11,
+      15,
+      33,
+      34,
+      56
+    ],
+    "powerball": 19,
+    "algorithm": "balanced",
+    "generated_at": "2025-09-15T18:37:14.867597"
+  },
+  {
+    "white_balls": [
+      10,
+      16,
+      33,
+      58,
+      59
+    ],
+    "powerball": 12,
+    "algorithm": "balanced",
+    "generated_at": "2025-09-15T18:37:14.867771"
+  }
+]

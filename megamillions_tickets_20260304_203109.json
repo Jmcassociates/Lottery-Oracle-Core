@@ -1,0 +1,242 @@
+[
+  {
+    "white_balls": [
+      2,
+      10,
+      21,
+      46,
+      61
+    ],
+    "mega_ball": 22,
+    "algorithm": "balanced",
+    "generated_at": "2026-03-04T20:31:09.011822"
+  },
+  {
+    "white_balls": [
+      3,
+      17,
+      29,
+      36,
+      64
+    ],
+    "mega_ball": 18,
+    "algorithm": "balanced",
+    "generated_at": "2026-03-04T20:31:09.011893"
+  },
+  {
+    "white_balls": [
+      19,
+      20,
+      21,
+      28,
+      66
+    ],
+    "mega_ball": 9,
+    "algorithm": "balanced",
+    "generated_at": "2026-03-04T20:31:09.011948"
+  },
+  {
+    "white_balls": [
+      3,
+      15,
+      20,
+      37,
+      46
+    ],
+    "mega_ball": 11,
+    "algorithm": "balanced",
+    "generated_at": "2026-03-04T20:31:09.011981"
+  },
+  {
+    "white_balls": [
+      25,
+      31,
+      39,
+      46,
+      66
+    ],
+    "mega_ball": 13,
+    "algorithm": "balanced",
+    "generated_at": "2026-03-04T20:31:09.012010"
+  },
+  {
+    "white_balls": [
+      3,
+      8,
+      10,
+      19,
+      29
+    ],
+    "mega_ball": 1,
+    "algorithm": "balanced",
+    "generated_at": "2026-03-04T20:31:09.012038"
+  },
+  {
+    "white_balls": [
+      17,
+      20,
+      40,
+      43,
+      46
+    ],
+    "mega_ball": 17,
+    "algorithm": "balanced",
+    "generated_at": "2026-03-04T20:31:09.012078"
+  },
+  {
+    "white_balls": [
+      8,
+      14,
+      20,
+      45,
+      52
+    ],
+    "mega_ball": 10,
+    "algorithm": "balanced",
+    "generated_at": "2026-03-04T20:31:09.012118"
+  },
+  {
+    "white_balls": [
+      12,
+      40,
+      51,
+      62,
+      64
+    ],
+    "mega_ball": 13,
+    "algorithm": "balanced",
+    "generated_at": "2026-03-04T20:31:09.012157"
+  },
+  {
+    "white_balls": [
+      29,
+      31,
+      43,
+      55,
+      66
+    ],
+    "mega_ball": 19,
+    "algorithm": "balanced",
+    "generated_at": "2026-03-04T20:31:09.012187"
+  },
+  {
+    "white_balls": [
+      20,
+      23,
+      31,
+      33,
+      46
+    ],
+    "mega_ball": 19,
+    "algorithm": "balanced",
+    "generated_at": "2026-03-04T20:31:09.012214"
+  },
+  {
+    "white_balls": [
+      1,
+      30,
+      31,
+      51,
+      66
+    ],
+    "mega_ball": 9,
+    "algorithm": "balanced",
+    "generated_at": "2026-03-04T20:31:09.012243"
+  },
+  {
+    "white_balls": [
+      3,
+      13,
+      31,
+      39,
+      41
+    ],
+    "mega_ball": 11,
+    "algorithm": "balanced",
+    "generated_at": "2026-03-04T20:31:09.012271"
+  },
+  {
+    "white_balls": [
+      20,
+      35,
+      57,
+      66,
+      70
+    ],
+    "mega_ball": 20,
+    "algorithm": "balanced",
+    "generated_at": "2026-03-04T20:31:09.012308"
+  },
+  {
+    "white_balls": [
+      20,
+      30,
+      46,
+      53,
+      59
+    ],
+    "mega_ball": 21,
+    "algorithm": "balanced",
+    "generated_at": "2026-03-04T20:31:09.012336"
+  },
+  {
+    "white_balls": [
+      3,
+      20,
+      29,
+      63,
+      66
+    ],
+    "mega_ball": 24,
+    "algorithm": "balanced",
+    "generated_at": "2026-03-04T20:31:09.012362"
+  },
+  {
+    "white_balls": [
+      3,
+      17,
+      37,
+      46,
+      67
+    ],
+    "mega_ball": 4,
+    "algorithm": "balanced",
+    "generated_at": "2026-03-04T20:31:09.012389"
+  },
+  {
+    "white_balls": [
+      5,
+      17,
+      18,
+      31,
+      37
+    ],
+    "mega_ball": 18,
+    "algorithm": "balanced",
+    "generated_at": "2026-03-04T20:31:09.012418"
+  },
+  {
+    "white_balls": [
+      10,
+      17,
+      31,
+      60,
+      68
+    ],
+    "mega_ball": 2,
+    "algorithm": "balanced",
+    "generated_at": "2026-03-04T20:31:09.012444"
+  },
+  {
+    "white_balls": [
+      1,
+      10,
+      17,
+      22,
+      31
+    ],
+    "mega_ball": 9,
+    "algorithm": "balanced",
+    "generated_at": "2026-03-04T20:31:09.012470"
+  }
+]

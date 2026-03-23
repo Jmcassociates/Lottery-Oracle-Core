@@ -27,10 +27,18 @@ def create_access_token(data: dict, expires_delta: timedelta | None = None):
     if expires_delta:
         expire = datetime.utcnow() + expires_delta
     else:
-        expire = datetime.utcnow() + timedelta(minutes=15)
+        expire = datetime.utcnow() + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
     to_encode.update({"exp": expire})
     encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
     return encoded_jwt
+
+def create_magic_link_token(email: str):
+    """
+    JMc - [2026-03-18] - Generates a high-entropy, short-lived token for passwordless auth.
+    Hard-coded to 15 minutes to minimize exposure window.
+    """
+    expires_delta = timedelta(minutes=15)
+    return create_access_token(data={"sub": email, "type": "magic_link"}, expires_delta=expires_delta)
 
 def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
     credentials_exception = HTTPException(

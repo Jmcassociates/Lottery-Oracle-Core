@@ -369,15 +369,44 @@ def run_sync_task():
         logger.error(f"Oracle - Manual Sync - Error during background sync: {e}")
 
 @app.post("/api/admin/sync")
-def trigger_sync():
+def trigger_sync(current_user: User = Depends(get_current_user)):
     """
-    JMc - [2026-03-18] - Serverless trigger for Cloud Scheduler.
-    Temporarily open for initial sync, will re-enable auth once the vault is primed.
+    JMc - [2026-03-18] - Secured Sync Trigger. 
+    Restored auth wall to prevent unauthorized data ingestion.
     """
-    logger.info("Oracle - Manual Sync - POST request received, spawning thread.")
+    if not current_user.is_admin:
+        raise HTTPException(status_code=403, detail="Administrative Clearance Required.")
+        
+    logger.info(f"Oracle - Manual Sync - Requested by admin: {current_user.email}")
     thread = threading.Thread(target=run_sync_task)
     thread.start()
     return {"status": "Sync triggered in background"}
+
+@app.get("/api/admin/stats")
+def get_admin_stats(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    """
+    JMc - [2026-03-18] - System Pulse. 
+    Returns database row counts and user metrics for the War Room blade.
+    """
+    if not current_user.is_admin:
+        raise HTTPException(status_code=403, detail="Administrative Clearance Required.")
+        
+    game_stats = {}
+    for game in GAMES.keys():
+        count = db.query(DrawRecord).filter(DrawRecord.game_name.startswith(game)).count()
+        game_stats[game] = count
+        
+    user_count = db.query(User).count()
+    pro_users = db.query(User).filter(User.tier == "pro").count()
+    
+    return {
+        "games": game_stats,
+        "users": {
+            "total": user_count,
+            "pro": pro_users,
+            "free": user_count - pro_users
+        }
+    }
 
 @app.get("/api/states")
 def list_states():

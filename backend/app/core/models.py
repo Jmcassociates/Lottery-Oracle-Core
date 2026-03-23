@@ -24,15 +24,22 @@ class DrawRecord(Base):
 
 class User(Base):
     """
-    MVP User table.
+    JMc - [2026-03-18] - Refactored User model. 
+    Supports Passwordless Magic Link auth and Administrative 'War Room' access.
     """
     __tablename__ = "users"
 
     id = Column(Integer, primary_key=True, index=True)
     email = Column(String, unique=True, index=True, nullable=False)
-    hashed_password = Column(String, nullable=False)
+    # JMc - Password is now optional to support pure Magic Link onboarding from GHL.
+    hashed_password = Column(String, nullable=True) 
+    
     tier = Column(String, default="free", nullable=False) # 'free' or 'pro'
+    is_admin = Column(Integer, default=0) # SQLite/Postgres friendly 0/1
+    is_active = Column(Integer, default=1) # Kill switch for Stripe failures
+    
     created_at = Column(DateTime(timezone=True), server_default=func.now())
+    last_login = Column(DateTime(timezone=True), nullable=True)
 
     ticket_batches = relationship("SavedTicketBatch", back_populates="owner", cascade="all, delete-orphan")
 
