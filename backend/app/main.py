@@ -357,15 +357,16 @@ app.add_middleware(
 app.include_router(auth.router, prefix="/api/auth", tags=["auth"])
 
 def run_sync_task():
-    logger.info("Running background database sync...")
+    logger.info("Oracle - Manual Sync - Starting background ingestion...")
     try:
         db = next(get_db())
         for game_name, config in GAMES.items():
+            logger.info(f"Oracle - Manual Sync - Processing {game_name}...")
             fetcher = config["fetcher"]()
             fetcher.sync_to_db(db)
-        logger.info("Background sync complete.")
+        logger.info("Oracle - Manual Sync - Background sync complete.")
     except Exception as e:
-        logger.error(f"Error during background sync: {e}")
+        logger.error(f"Oracle - Manual Sync - Error during background sync: {e}")
 
 @app.post("/api/admin/sync")
 def trigger_sync():
@@ -373,6 +374,7 @@ def trigger_sync():
     JMc - [2026-03-18] - Serverless trigger for Cloud Scheduler.
     Temporarily open for initial sync, will re-enable auth once the vault is primed.
     """
+    logger.info("Oracle - Manual Sync - POST request received, spawning thread.")
     thread = threading.Thread(target=run_sync_task)
     thread.start()
     return {"status": "Sync triggered in background"}
