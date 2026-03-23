@@ -8,8 +8,8 @@ from sqlalchemy.orm import Session
 from app.core.database import get_db
 from app.core.models import User
 
-# JMc - Hardcoded secret for local dev MVP. In prod, this MUST be an env variable.
-SECRET_KEY = os.getenv("JWT_SECRET_KEY", "b3a9f0e2d5c8b7a6f9e1d0c2b4a5f8e7d9c0b1a2f3e4d5c6b7a8f9e0d1c2b3a4")
+# JMc - [2026-03-18] - Support both common naming conventions for JWT secrets.
+SECRET_KEY = os.getenv("JWT_SECRET") or os.getenv("JWT_SECRET_KEY") or "b3a9f0e2d5c8b7a6f9e1d0c2b4a5f8e7d9c0b1a2f3e4d5c6b7a8f9e0d1c2b3a4"
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24 * 7 # 7 days
 
