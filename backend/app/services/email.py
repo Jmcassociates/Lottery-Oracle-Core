@@ -68,10 +68,18 @@ class EmailService:
         message.attach(part)
 
         try:
-            with smtplib.SMTP(host, port) as server:
+            # JMc - [2026-03-18] - Port 465 requires SMTP_SSL (Implicit SSL)
+            # Port 587 requires SMTP + starttls (Explicit SSL/TLS)
+            if port == 465:
+                server = smtplib.SMTP_SSL(host, port)
+            else:
+                server = smtplib.SMTP(host, port)
                 server.starttls()
+            
+            with server:
                 server.login(user, password)
                 server.sendmail(from_email, to_email, message.as_string())
+            
             logger.info(f"Oracle - Email Success - Magic link dispatched to {to_email}")
             return True
         except Exception as e:
