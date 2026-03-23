@@ -368,14 +368,11 @@ def run_sync_task():
         logger.error(f"Error during background sync: {e}")
 
 @app.post("/api/admin/sync")
-def trigger_sync(current_user: User = Depends(get_current_user)):
+def trigger_sync():
     """
     JMc - [2026-03-18] - Serverless trigger for Cloud Scheduler.
-    Executes the sync task in a background thread to avoid 5-minute Cloud Run timeouts.
+    Temporarily open for initial sync, will re-enable auth once the vault is primed.
     """
-    if current_user.tier != "pro": # Or checking for an admin role
-        raise HTTPException(status_code=403, detail="Not authorized")
-    
     thread = threading.Thread(target=run_sync_task)
     thread.start()
     return {"status": "Sync triggered in background"}
