@@ -29,6 +29,7 @@ from app.services.permutation_engine import PermutationMathEngine
 from app.services.scraper import JackpotScraper
 from app.services.exporter import PDFExporter
 from app.api import auth
+from app.api.auth import GHL_WEBHOOK_SECRET
 from migrate_v2 import migrate as run_schema_migration
 from migrate_v2_1 import migrate as run_nat_migration
 
