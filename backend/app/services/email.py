@@ -13,7 +13,44 @@ class EmailService:
     """
     
     @staticmethod
-    def send_magic_link(email: str, magic_link: str):
+    def send_admin_report(to_email: str, report_data: dict):
+        """
+        JMc - [2026-03-18] - Dispatches the daily 'Executive Briefing' to the lead architect.
+        Contains database stats, sync status, and system alerts.
+        """
+        subject = f"[ORACLE SYSTEM PULSE] - {datetime.now().strftime('%Y-%m-%d')}"
+        
+        # Build the dynamic HTML list for games
+        game_rows = ""
+        for game, status in report_data.get("sync_results", {}).items():
+            color = "#10b981" if "Added" in status or "Up to date" in status else "#ef4444"
+            game_rows += f"<tr><td style='padding:8px; border-bottom:1px solid #1e293b; color:#94a3b8;'>{game}</td><td style='padding:8px; border-bottom:1px solid #1e293b; color:{color}; font-family:monospace;'>{status}</td></tr>"
+
+        html_content = f"""
+        <html>
+            <body style="background-color: #020617; color: #cbd5e1; font-family: sans-serif; padding: 20px;">
+                <div style="max-width: 600px; margin: 0 auto; background-color: #0f172a; border: 1px solid #1e293b; border-radius: 12px; padding: 30px;">
+                    <h1 style="color: #ffffff; margin-top:0; border-bottom: 2px solid #38bdf8; padding-bottom: 10px;">SYSTEM PULSE</h1>
+                    
+                    <h2 style="color: #38bdf8; font-size: 14px; text-transform: uppercase;">01. Synchronization Status</h2>
+                    <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px;">
+                        {game_rows}
+                    </table>
+
+                    <h2 style="color: #38bdf8; font-size: 14px; text-transform: uppercase;">02. Syndicate Metrics</h2>
+                    <p style="margin: 5px 0;">Total Technicians: <strong style="color:#ffffff;">{report_data.get('user_total', 0)}</strong></p>
+                    <p style="margin: 5px 0;">Pro Tier Assets: <strong style="color:#10b981;">{report_data.get('user_pro', 0)}</strong></p>
+                    
+                    <h2 style="color: #38bdf8; font-size: 14px; text-transform: uppercase;">03. Database Vitality</h2>
+                    <p style="font-size: 12px; color: #94a3b8; font-family: monospace;">Total Draw Records: {report_data.get('total_records', 0)}</p>
+                    
+                    <hr style="border: 0; border-top: 1px solid #1e293b; margin: 30px 0;">
+                    <p style="font-size: 10px; color: #475569; text-align: center;">CONFIDENTIAL ADMINISTRATIVE TRANSMISSION // JMc Associates LLC</p>
+                </div>
+            </body>
+        </html>
+        """
+        return EmailService._send_email(to_email, subject, html_content)
         """
         Sends a secure Magic Link to the user.
         """

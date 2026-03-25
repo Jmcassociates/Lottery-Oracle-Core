@@ -362,6 +362,7 @@ app.include_router(auth.router, prefix="/api/auth", tags=["auth"])
 
 def run_sync_task():
     logger.info("Oracle - Manual Sync - Starting background ingestion...")
+    sync_results = {}
     try:
         # JMc - [2026-03-18] - Ensure the database schema is up to date before syncing.
         logger.info("Oracle - Manual Sync - Executing schema migration v2.0...")
@@ -374,11 +375,33 @@ def run_sync_task():
         db = next(get_db())
         for game_name, config in GAMES.items():
             logger.info(f"Oracle - Manual Sync - Processing {game_name}...")
-            fetcher = config["fetcher"]()
-            fetcher.sync_to_db(db)
-        logger.info("Oracle - Manual Sync - Background sync complete.")
+            try:
+                fetcher = config["fetcher"]()
+                new_count = fetcher.sync_to_db(db)
+                sync_results[game_name] = f"Added {new_count} new draws." if new_count > 0 else "Up to date."
+            except Exception as e:
+                logger.error(f"Oracle - Sync Failure - {game_name}: {e}")
+                sync_results[game_name] = f"FAILED: {str(e)[:50]}..."
+
+        # JMc - [2026-03-18] - Collect Syndicate Stats for the report
+        user_total = db.query(User).count()
+        user_pro = db.query(User).filter(User.tier == "pro").count()
+        total_records = db.query(DrawRecord).count()
+
+        # JMc - [2026-03-18] - Dispatch the Executive Briefing
+        report_data = {
+            "sync_results": sync_results,
+            "user_total": user_total,
+            "user_pro": user_pro,
+            "total_records": total_records
+        }
+        
+        admin_email = os.getenv("SMTP_FROM_EMAIL") # Defaulting to support email
+        EmailService.send_admin_report(admin_email, report_data)
+        
+        logger.info("Oracle - Manual Sync - Background sync complete. Pulse report dispatched.")
     except Exception as e:
-        logger.error(f"Oracle - Manual Sync - Error during background sync: {e}")
+        logger.error(f"Oracle - Manual Sync - Global Failure during background sync: {e}")
 
 @app.post("/api/admin/sync")
 def trigger_sync(request: Request):
