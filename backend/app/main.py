@@ -30,6 +30,7 @@ from app.services.scraper import JackpotScraper
 from app.services.exporter import PDFExporter
 from app.api import auth
 from migrate_v2 import migrate as run_schema_migration
+from migrate_v2_1 import migrate as run_nat_migration
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -364,6 +365,10 @@ def run_sync_task():
         # JMc - [2026-03-18] - Ensure the database schema is up to date before syncing.
         logger.info("Oracle - Manual Sync - Executing schema migration v2.0...")
         run_schema_migration()
+        
+        # JMc - [2026-03-18] - Re-align National games with the NAT mandate.
+        logger.info("Oracle - Manual Sync - Executing NAT migration v2.1...")
+        run_nat_migration()
         
         db = next(get_db())
         for game_name, config in GAMES.items():
