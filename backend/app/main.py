@@ -380,15 +380,27 @@ def run_sync_task():
         logger.error(f"Oracle - Manual Sync - Error during background sync: {e}")
 
 @app.post("/api/admin/sync")
-def trigger_sync():
+def trigger_sync(request: Request):
     """
-    JMc - [2026-03-18] - Bootstrap Sync Trigger. 
-    TEMPORARILY UNLOCKED for initial database provisioning.
+    JMc - [2026-03-18] - Secured Sync Trigger.
+    Now requires the GHL_WEBHOOK_SECRET in the header to prevent unauthorized heavy tasks.
     """
-    logger.info("Oracle - Manual Sync - Unauthenticated request received (Bootstrap Mode).")
+    token = request.headers.get("X-GHL-Verify")
+    if token != GHL_WEBHOOK_SECRET:
+        logger.warning(f"Unauthorized sync attempt from IP: {request.client.host}")
+        raise HTTPException(status_code=403, detail="Administrative Clearance Required.")
+        
+    logger.info("Oracle - Manual Sync - Verified trigger received. Spawning background thread.")
     thread = threading.Thread(target=run_sync_task)
     thread.start()
     return {"status": "Sync triggered in background"}
+
+@app.get("/api/admin/health")
+def admin_health_check():
+    """
+    JMc - [2026-03-18] - Simple status check for Cloud Scheduler uptime monitoring.
+    """
+    return {"status": "operational", "version": "2.1.0"}
 
 @app.get("/api/admin/stats")
 def get_admin_stats(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
