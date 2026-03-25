@@ -99,6 +99,7 @@ jobs:
           SMTP_USER=${{ secrets.SMTP_USER }}
           SMTP_PASSWORD=${{ secrets.SMTP_PASSWORD }}
           SMTP_FROM_EMAIL=${{ secrets.SMTP_FROM_EMAIL }}
+          ADMIN_EMAIL=james@moderncyph3r.com
 
     # ---------------------------------------------------------
     # FRONTEND DEPLOYMENT (React + Nginx Reverse Proxy)

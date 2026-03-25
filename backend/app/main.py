@@ -396,7 +396,8 @@ def run_sync_task():
             "total_records": total_records
         }
         
-        admin_email = os.getenv("SMTP_FROM_EMAIL") # Defaulting to support email
+        # JMc - [2026-03-18] - Priority: ADMIN_EMAIL env var > James's direct address > From Address
+        admin_email = os.getenv("ADMIN_EMAIL", "james@moderncyph3r.com")
         EmailService.send_admin_report(admin_email, report_data)
         
         logger.info("Oracle - Manual Sync - Background sync complete. Pulse report dispatched.")
