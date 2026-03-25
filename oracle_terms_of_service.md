@@ -1,5 +1,6 @@
 # TERMS OF SERVICE: THE ORACLE PROTOCOL
 **JMc Associates, LLC // ModernCYPH3R and Associated Properties**
+**LAST UPDATED:** March 25, 2026
 
 By accessing the Oracle (the "Service"), you are entering into a binding agreement with JMc Associates, LLC. If you do not agree to these terms, disconnect immediately.
 
