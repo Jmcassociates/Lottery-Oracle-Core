@@ -1,12 +1,9 @@
 /* Oracle Funnel v15.2 - Pattern Deletion Protocol */
 
-/* 1. Universal Base - Kill GHL Patterns and Gradients */
+/* 1. Universal Base - Clean Obsidian Aesthetic */
 html, body, #app, .hl-app, .hl_wrapper, .hl-main-container, .hl-main-content, .section {
     background-color: #020617 !important;
-    background-image: url("data:image/svg+xml,%3Csvg width='40' height='40' viewBox='0 0 40 40' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg width='40' height='40' fill='%2338bdf8' fill-opacity='0.15'%3E%3Cpath d='M0 38.59V0h1v38.59L38.59 1H0V0h40v40H0V38.59z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E") !important;
-    background-size: 40px 40px !important;
-    background-attachment: fixed !important;
-    /* Kill any GHL injected diagonals/gradients */
+    background-image: none !important;
     mask-image: none !important;
     -webkit-mask-image: none !important;
 }
@@ -30,11 +27,18 @@ h1, .elHeadline {
 .oracle-card {
     background-color: #0f172a !important; 
     background-image: none !important; 
+    /* Remove the border here if it's causing the bleed, or keep it but strip padding */
     border: 1px solid #1e293b !important;
     border-radius: 16px !important;
-    padding: 50px !important;
+    padding: 0px !important; /* Set internal padding to 0 to force border to hug the content */
     box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7) !important;
-    margin: 40px auto !important;
+    margin: 80px auto !important;
+    overflow: hidden !important; /* Ensure background doesn't leak out */
+}
+
+/* 4b. Inner Padding for the content inside the card */
+.oracle-card > div, .oracle-card .ghl-form-container {
+    padding: 50px !important;
 }
 
 /* 5. Force Blue Button */
