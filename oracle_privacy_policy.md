@@ -20,4 +20,4 @@ We use essential cookies to maintain your session within the Oracle Dashboard. W
 
 ---
 **CONTACT:**
-For data inquiries or "Right to be Forgotten" requests, contact: admin@moderncyph3r.com
+For data inquiries or "Right to be Forgotten" requests, contact: support@moderncyph3r.com
