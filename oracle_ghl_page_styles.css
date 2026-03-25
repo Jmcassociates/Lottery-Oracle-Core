@@ -1,0 +1,47 @@
+/* Oracle Funnel v15.2 - Pattern Deletion Protocol */
+
+/* 1. Universal Base - Kill GHL Patterns and Gradients */
+html, body, #app, .hl-app, .hl_wrapper, .hl-main-container, .hl-main-content, .section {
+    background-color: #020617 !important;
+    background-image: url("data:image/svg+xml,%3Csvg width='40' height='40' viewBox='0 0 40 40' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg width='40' height='40' fill='%2338bdf8' fill-opacity='0.15'%3E%3Cpath d='M0 38.59V0h1v38.59L38.59 1H0V0h40v40H0V38.59z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E") !important;
+    background-size: 40px 40px !important;
+    background-attachment: fixed !important;
+    /* Kill any GHL injected diagonals/gradients */
+    mask-image: none !important;
+    -webkit-mask-image: none !important;
+}
+
+/* 2. Kill Nested Backgrounds */
+.inner-container, .c-row, .c-column, .inner, .hl_section {
+    background: transparent !important;
+    background-image: none !important;
+}
+
+/* 3. Headlines & Body Text */
+h1, .elHeadline {
+    background: linear-gradient(135deg, #ffffff 0%, #94a3b8 100%) !important;
+    -webkit-background-clip: text !important;
+    -webkit-text-fill-color: transparent !important;
+    font-family: 'Montserrat', sans-serif !important;
+    font-weight: 700 !important;
+}
+
+/* 4. THE CARD - Elevated Oracle Container */
+.oracle-card {
+    background-color: #0f172a !important; 
+    background-image: none !important; 
+    border: 1px solid #1e293b !important;
+    border-radius: 16px !important;
+    padding: 50px !important;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7) !important;
+    margin: 40px auto !important;
+}
+
+/* 5. Force Blue Button */
+button[type="submit"], .btn-submit, .ghl-button, .order-2step .btn-checkout {
+    background-color: #3b82f6 !important; 
+    color: #ffffff !important;
+    font-family: 'Montserrat', sans-serif !important;
+    font-weight: 800 !important;
+    text-transform: uppercase !important;
+}
