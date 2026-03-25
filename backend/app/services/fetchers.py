@@ -24,8 +24,8 @@ class LotteryFetcher:
         
     def sync_to_db(self, db: Session):
         """
-        JMc - [2026-03-16] - Standardized method to sync fetched data into the universal SQLite table.
-        It strictly enforces the unique constraint (state_code, game_name, draw_date) to prevent duplicates.
+        JMc - [2026-03-18] - Optimized sync. Fetches all existing dates for this game once
+        to perform in-memory existence checks, reducing DB round-trips by 99%.
         """
         try:
             raw_draws = self.fetch_data()
@@ -33,16 +33,20 @@ class LotteryFetcher:
             logger.error(f"Failed to fetch data for {self.game_name}: {e}")
             return False
             
-        new_records = 0
-        for draw in raw_draws:
-            # Check if record exists
-            exists = db.query(DrawRecord).filter(
+        # Get all existing dates for this specific game to avoid N+1 query problem
+        existing_dates = {
+            d[0] for d in db.query(DrawRecord.draw_date).filter(
                 DrawRecord.state_code == self.state_code,
-                DrawRecord.game_name == self.game_name,
-                DrawRecord.draw_date == draw['date'].date()
-            ).first()
-            
-            if not exists:
+                DrawRecord.game_name == self.game_name
+            ).all()
+        }
+
+        new_records = 0
+        batch_size = 500
+        
+        for draw in raw_draws:
+            draw_date = draw['date'].date()
+            if draw_date not in existing_dates:
                 # JMc - [2026-03-16] - For Combinatorial games, order doesn't matter, so we sort the balls
                 # to ensure consistent hashing for the 'Never Picked Before' collision logic.
                 sorted_whites = sorted(draw['white_balls'])
@@ -51,13 +55,16 @@ class LotteryFetcher:
                 record = DrawRecord(
                     state_code=self.state_code,
                     game_name=self.game_name,
-                    draw_date=draw['date'].date(),
+                    draw_date=draw_date,
                     white_balls=white_str,
                     special_ball=draw['special_ball'],
                     multiplier=draw.get('multiplier')
                 )
                 db.add(record)
                 new_records += 1
+                
+                if new_records % batch_size == 0:
+                    db.commit()
                 
         db.commit()
         logger.info(f"[{self.game_name}] Sync complete. Added {new_records} new draws.")
@@ -352,31 +359,37 @@ class BasePickFetcher(LotteryFetcher):
             logger.error(f"Failed to fetch data for {self.game_name}: {e}")
             return False
             
+        # Optimization: Fetch all existing dates for VA for all variants (Day/Night)
+        # to minimize queries during the loop.
+        existing_records = {
+            (d.game_name, d.draw_date) for d in db.query(DrawRecord.game_name, DrawRecord.draw_date).filter(
+                DrawRecord.state_code == "VA"
+            ).all()
+        }
+
         new_records = 0
+        batch_size = 500
         for draw in raw_draws:
             actual_game_name = draw.get('game_name', self.game_name)
+            draw_date = draw['date'].date()
             
-            exists = db.query(DrawRecord).filter(
-                DrawRecord.state_code == "VA",
-                DrawRecord.game_name == actual_game_name,
-                DrawRecord.draw_date == draw['date'].date()
-            ).first()
-            
-            if not exists:
+            if (actual_game_name, draw_date) not in existing_records:
                 # JMc - [2026-03-16] - IMPORTANT: For Pick games, order matters! So we DO NOT sort here.
-                # We need to store them in the exact order drawn for the Permutation Engine.
                 white_str = ",".join(str(x) for x in draw['white_balls'])
                 
                 record = DrawRecord(
                     state_code="VA",
                     game_name=actual_game_name,
-                    draw_date=draw['date'].date(),
+                    draw_date=draw_date,
                     white_balls=white_str,
                     special_ball=draw['special_ball'],
                     multiplier=draw.get('multiplier')
                 )
                 db.add(record)
                 new_records += 1
+                
+                if new_records % batch_size == 0:
+                    db.commit()
                 
         db.commit()
         logger.info(f"[{self.game_name}] Sync complete. Added {new_records} new draws.")
@@ -499,7 +512,7 @@ class BaseTexasPickFetcher(LotteryFetcher):
     def sync_to_db(self, db: Session):
         """
         JMc - [2026-03-18] - Override sync_to_db for Texas Pick games (order matters).
-        Includes batch commits to prevent OOM kills on 100k+ row CSVs.
+        Includes in-memory existence checks and batch commits for massive CSVs.
         """
         try:
             raw_draws = self.fetch_data()
@@ -507,24 +520,26 @@ class BaseTexasPickFetcher(LotteryFetcher):
             logger.error(f"Failed to fetch data for {self.game_name}: {e}")
             return False
             
+        # Optimization: Pull all TX dates to avoid N+1 queries.
+        existing_records = {
+            (d.game_name, d.draw_date) for d in db.query(DrawRecord.game_name, DrawRecord.draw_date).filter(
+                DrawRecord.state_code == "TX"
+            ).all()
+        }
+
         new_records = 0
         batch_size = 2000
         
         for draw in raw_draws:
             actual_game_name = draw.get('game_name', self.game_name)
+            draw_date = draw['date'].date()
             
-            exists = db.query(DrawRecord).filter(
-                DrawRecord.state_code == "TX",
-                DrawRecord.game_name == actual_game_name,
-                DrawRecord.draw_date == draw['date'].date()
-            ).first()
-            
-            if not exists:
+            if (actual_game_name, draw_date) not in existing_records:
                 white_str = ",".join(str(x) for x in draw['white_balls'])
                 record = DrawRecord(
                     state_code="TX",
                     game_name=actual_game_name,
-                    draw_date=draw['date'].date(),
+                    draw_date=draw_date,
                     white_balls=white_str,
                     special_ball=draw['special_ball'],
                     multiplier=draw.get('multiplier')
@@ -640,28 +655,32 @@ class NewYorkTake5Fetcher(LotteryFetcher):
         return draws
 
     def sync_to_db(self, db: Session):
+        """
+        JMc - [2026-03-18] - Optimized sync for NY Take 5.
+        """
         try:
             raw_draws = self.fetch_data()
         except Exception as e:
             logger.error(f"Failed to fetch data for {self.game_name}: {e}")
             return False
             
+        existing_records = {
+            (d.game_name, d.draw_date) for d in db.query(DrawRecord.game_name, DrawRecord.draw_date).filter(
+                DrawRecord.state_code == self.state_code
+            ).all()
+        }
+
         new_records = 0
         for draw in raw_draws:
             actual_game_name = draw.get('game_name', self.game_name)
-            exists = db.query(DrawRecord).filter(
-                DrawRecord.state_code == self.state_code,
-                DrawRecord.game_name == actual_game_name,
-                DrawRecord.draw_date == draw['date'].date()
-            ).first()
-            
-            if not exists:
+            draw_date = draw['date'].date()
+            if (actual_game_name, draw_date) not in existing_records:
                 sorted_whites = sorted(draw['white_balls'])
                 white_str = ",".join(str(x) for x in sorted_whites)
                 record = DrawRecord(
                     state_code=self.state_code,
                     game_name=actual_game_name,
-                    draw_date=draw['date'].date(),
+                    draw_date=draw_date,
                     white_balls=white_str,
                     special_ball=draw['special_ball'],
                     multiplier=draw.get('multiplier')
@@ -669,6 +688,7 @@ class NewYorkTake5Fetcher(LotteryFetcher):
                 db.add(record)
                 new_records += 1
         db.commit()
+        logger.info(f"[{self.game_name}] Sync complete. Added {new_records} new draws.")
         return new_records
 
 class NewYorkPickFetcher(LotteryFetcher):
@@ -734,28 +754,32 @@ class NewYorkPickFetcher(LotteryFetcher):
         return draws
 
     def sync_to_db(self, db: Session):
+        """
+        JMc - [2026-03-18] - Optimized sync for NY Pick games.
+        """
         try:
             raw_draws = self.fetch_data()
         except Exception as e:
             logger.error(f"Failed to fetch data for {self.game_name}: {e}")
             return False
             
+        existing_records = {
+            (d.game_name, d.draw_date) for d in db.query(DrawRecord.game_name, DrawRecord.draw_date).filter(
+                DrawRecord.state_code == self.state_code
+            ).all()
+        }
+
         new_records = 0
         for draw in raw_draws:
             actual_game_name = draw.get('game_name', self.game_name)
-            exists = db.query(DrawRecord).filter(
-                DrawRecord.state_code == self.state_code,
-                DrawRecord.game_name == actual_game_name,
-                DrawRecord.draw_date == draw['date'].date()
-            ).first()
-            
-            if not exists:
+            draw_date = draw['date'].date()
+            if (actual_game_name, draw_date) not in existing_records:
                 # Order matters for Pick games
                 white_str = ",".join(str(x) for x in draw['white_balls'])
                 record = DrawRecord(
                     state_code=self.state_code,
                     game_name=actual_game_name,
-                    draw_date=draw['date'].date(),
+                    draw_date=draw_date,
                     white_balls=white_str,
                     special_ball=draw['special_ball'],
                     multiplier=draw.get('multiplier')
@@ -763,6 +787,7 @@ class NewYorkPickFetcher(LotteryFetcher):
                 db.add(record)
                 new_records += 1
         db.commit()
+        logger.info(f"[{self.game_name}] Sync complete. Added {new_records} new draws.")
         return new_records
 
 class NewYorkPick3Fetcher(NewYorkPickFetcher):
