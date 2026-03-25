@@ -404,14 +404,11 @@ def admin_health_check():
     return {"status": "operational", "version": "2.1.0"}
 
 @app.get("/api/admin/stats")
-def get_admin_stats(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+def get_admin_stats(db: Session = Depends(get_db)):
     """
     JMc - [2026-03-18] - System Pulse. 
-    Returns database row counts and user metrics for the War Room blade.
+    TEMPORARILY UNLOCKED for diagnosis.
     """
-    if not current_user.is_admin:
-        raise HTTPException(status_code=403, detail="Administrative Clearance Required.")
-        
     game_stats = {}
     for game in GAMES.keys():
         count = db.query(DrawRecord).filter(DrawRecord.game_name.startswith(game)).count()
