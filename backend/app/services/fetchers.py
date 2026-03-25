@@ -67,8 +67,10 @@ class LotteryFetcher:
 class VirginiaPowerballFetcher(LotteryFetcher):
     """
     JMc - [2026-03-16] - Fetches Powerball from the Virginia Lottery JSON API (CSV-like format).
+    JMc - [2026-03-18] - Re-aligned with NAT mandate.
     """
-    game_name = "VirginiaPowerball"
+    game_name = "Powerball"
+    state_code = "NAT"
     url = "https://www.valottery.com/api/v1/downloadall?gameId=20"
 
     def fetch_data(self):
@@ -122,8 +124,10 @@ class VirginiaPowerballFetcher(LotteryFetcher):
 class VirginiaMegaMillionsFetcher(LotteryFetcher):
     """
     JMc - [2026-03-16] - Fetches MegaMillions from the Virginia Lottery JSON API.
+    JMc - [2026-03-18] - Re-aligned with NAT mandate.
     """
-    game_name = "VirginiaMegaMillions"
+    game_name = "MegaMillions"
+    state_code = "NAT"
     url = "https://www.valottery.com/api/v1/downloadall?gameId=15"
     
     def fetch_data(self):
