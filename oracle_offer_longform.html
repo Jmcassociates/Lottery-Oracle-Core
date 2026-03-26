@@ -1,3 +1,22 @@
+
+    <!-- Mermaid JS Injection -->
+    <script type="module">
+      import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs';
+      mermaid.initialize({ 
+          startOnLoad: true, 
+          theme: 'dark',
+          themeVariables: {
+              primaryColor: '#0f172a',
+              primaryTextColor: '#f8fafc',
+              primaryBorderColor: '#334155',
+              lineColor: '#94a3b8',
+              secondaryColor: '#1e293b',
+              tertiaryColor: '#020617'
+          },
+          fontFamily: 'Inter, sans-serif'
+      });
+    </script>
+
 <div class="oracle-longform-copy" style="color: #cbd5e1; font-family: 'Inter', sans-serif; line-height: 1.8; font-size: 18px; max-width: 850px; margin: 0 auto; padding: 20px;">
     
     <p style="font-size: 22px; color: #f8fafc; font-weight: 300; border-left: 4px solid #38bdf8; padding-left: 25px; margin-bottom: 40px;">
@@ -15,6 +34,43 @@
     <div style="background-color: #0f172a; border: 1px solid #1e293b; padding: 40px; border-radius: 12px; margin: 50px 0;">
         <h3 style="color: #38bdf8; font-family: 'Montserrat', sans-serif; margin-top: 0;">The Industrial Sieve: Our Math Engines</h3>
         <p>The Oracle is a heavy-duty industrial sieve designed to filter out the 70% of reality that will never occur. We use a dual-engine framework to process historical draw data with clinical precision.</p>
+
+        <div style="margin: 40px 0; background: #020617; border: 1px solid #334155; border-radius: 12px; padding: 20px; overflow-x: auto;">
+            <pre class="mermaid" style="text-align: center; background: transparent;">
+graph TD
+    DB[(10-Year Historical DB)] -->|Ingestion| PROPHET[THE PROPHET ENGINE]
+
+    subgraph Phase 1: Analysis
+        PROPHET --> M[Markov Transition Scopes]
+        PROPHET --> P[Poisson Overdue Tension]
+        PROPHET --> F[Base Draw Frequency]
+    end
+
+    M & P & F --> SCORE{Weighted Scorer}
+    SCORE --> POOL[Autonomous 15-Number Smart Pool]
+
+    POOL --> PRAGMATIST[THE PRAGMATIST ENGINE]
+
+    subgraph Phase 2: Deployment
+        PRAGMATIST --> WHEEL[Greedy Combinatorial Wheeling]
+        WHEEL --> BATCH[Multi-Tier Coverage Batch]
+    end
+
+    BATCH --> SCOUTER{The Pattern Scouter}
+    
+    SCOUTER -->|Fail| REJECT[Purged: Statistical Noise]
+    SCOUTER -->|Pass| DISPLAY[Dashboard Deployment]
+
+    style DB fill:#0f172a,stroke:#334155,color:#cbd5e1
+    style PROPHET fill:#1e3a8a,stroke:#3b82f6,color:#ffffff,stroke-width:2px
+    style PRAGMATIST fill:#4c1d95,stroke:#8b5cf6,color:#ffffff,stroke-width:2px
+    style POOL fill:#064e3b,stroke:#10b981,color:#ffffff
+    style SCOUTER fill:#78350f,stroke:#f59e0b,color:#ffffff,stroke-width:2px
+    style REJECT fill:#450a0a,stroke:#ef4444,color:#fca5a5
+    style DISPLAY fill:#10b981,stroke:#059669,color:#ffffff
+            </pre>
+        </div>
+
         
         <ul style="list-style: none; padding: 0;">
             <li style="margin-bottom: 25px;">
