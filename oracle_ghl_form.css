@@ -67,3 +67,171 @@
     color: #ffffff !important;
     font-family: 'Montserrat', sans-serif !important;
 }
+
+
+/* BRUTE FORCE 2-STEP OVERRIDES */
+.order-2step, 
+.order-2step .checkout-wrapper, 
+.order-2step .product-list, 
+.order-2step .step-content, 
+.order-2step .step-body,
+.order-2step .checkout-form-container,
+.order-2step .summary-content,
+.ghl-2-step-order-form > div {
+    background-color: transparent !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    border: none !important;
+}
+
+/* Fix text colors inside the 2-step form */
+.order-2step input, 
+.order-2step select, 
+.order-2step textarea {
+    background-color: #0f111a !important;
+    color: #e2e8f0 !important;
+    border: 1px solid #334155 !important;
+}
+
+.order-2step label, 
+.order-2step .product-name, 
+.order-2step .product-price, 
+.order-2step h1, 
+.order-2step h2, 
+.order-2step h3, 
+.order-2step h4, 
+.order-2step h5, 
+.order-2step h6, 
+.order-2step p, 
+.order-2step span {
+    color: #e2e8f0 !important;
+}
+
+
+/* SURGICAL ID STRIKE FOR 2-STEP ORDER FORM */
+#two-setp-order-_Vc6mdNU_c, 
+#two-setp-order-_Vc6mdNU_c .checkout-wrapper,
+#two-setp-order-_Vc6mdNU_c .step-content,
+#two-setp-order-_Vc6mdNU_c .step-body,
+#two-setp-order-_Vc6mdNU_c .checkout-form-container,
+#two-setp-order-_Vc6mdNU_c div {
+    background: transparent !important;
+    background-color: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+}
+
+#two-setp-order-_Vc6mdNU_c input.form-control,
+#two-setp-order-_Vc6mdNU_c select {
+    background-color: #0f111a !important;
+    color: #e2e8f0 !important;
+    border: 1px solid #334155 !important;
+}
+
+#two-setp-order-_Vc6mdNU_c .btn-checkout {
+    background-color: #3b82f6 !important;
+    font-weight: 800 !important;
+    text-transform: uppercase !important;
+}
+
+
+/* THE NUCLEAR OPTION - TOTAL WHITE-SPACE ANNIHILATION */
+.ghl-2-step-order-form, 
+.order-2step, 
+.order-2-step,
+.order-form,
+.checkout-form,
+.step-content,
+.step-body,
+.product-list,
+.summary-content,
+[id^='two-step-order'],
+[id^='two-setp-order'] {
+    background-color: transparent !important;
+    background: transparent !important;
+}
+
+/* Force specific nested elements to surrender their white background */
+.ghl-2-step-order-form *, .order-2step * {
+    background-color: transparent !important;
+}
+
+/* Re-apply dark theme to the things that NEED backgrounds (Inputs) */
+.order-2step input, 
+.order-2step select, 
+.order-2step textarea,
+[id^='two-step-order'] input,
+[id^='two-setp-order'] input {
+    background-color: #0f111a !important;
+    color: #f8fafc !important;
+    border: 1px solid #334155 !important;
+}
+
+/* Force all labels, headers, and text to high-legibility off-white */
+.order-2step label, 
+.order-2step p, 
+.order-2step span, 
+.order-2step h1, .order-2step h2, .order-2step h3, .order-2step h4,
+.product-name, 
+.product-price,
+.step-header {
+    color: #e2e8f0 !important;
+}
+
+/* Ensure active/selected items are visible but not white */
+.product-item.active, .product-item:hover {
+    background-color: #1e293b !important;
+}
+
+
+/* FIX BLANK SPACE & BRIGHTEN TEXT IN 2-STEP FORM */
+.order-2step .step-content {
+    padding: 0 !important;
+}
+
+.order-2step .product-list, .order-2step .summary-content {
+    padding: 0 !important;
+    margin-top: 10px !important;
+}
+
+.order-2step .product-item {
+    padding: 15px !important;
+    border: 1px solid #334155 !important;
+    border-radius: 8px !important;
+    margin-bottom: 10px !important;
+}
+
+/* Force all text inside the form to pure white for maximum legibility */
+.order-2step *, 
+.ghl-2-step-order-form *,
+[id^='two-step-order'] *,
+[id^='two-setp-order'] * {
+    color: #ffffff !important;
+}
+
+/* Except inputs which should stay slightly off-white */
+.order-2step input, 
+.order-2step select, 
+.order-2step textarea {
+    color: #f8fafc !important;
+}
+
+/* Fix the step headers (Step 1 / Step 2 tabs) */
+.order-2step .nav-tabs .nav-link {
+    background-color: transparent !important;
+    color: #94a3b8 !important; /* Dimmed unselected */
+    border: none !important;
+    border-bottom: 2px solid #334155 !important;
+    padding-bottom: 10px !important;
+}
+
+.order-2step .nav-tabs .nav-link.active {
+    color: #38bdf8 !important; /* Oracle blue for active tab */
+    border-bottom: 2px solid #38bdf8 !important;
+    background-color: transparent !important;
+}
+
+/* Reduce the massive gap between the form and the headline */
+.order-2step .checkout-wrapper {
+    padding-top: 0 !important;
+}
