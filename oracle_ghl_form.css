@@ -12,7 +12,7 @@
 }
 
 /* 2. Target the specific input fields */
-#form-MHQfjRH_10 input.form-control {
+#form-MHQfjRH_10 input.form-control, .order-2step input.form-control {
     background-color: #0f111a !important; 
     border: 1px solid #334155 !important; 
     color: #e2e8f0 !important;
@@ -22,7 +22,7 @@
 }
 
 /* 3. Force labels to high-contrast grey */
-#form-MHQfjRH_10 label.control-label {
+#form-MHQfjRH_10 label.control-label, .order-2step label {
     color: #cbd5e1 !important;
     font-family: 'Inter', sans-serif !important;
     font-weight: 500 !important;
@@ -30,7 +30,7 @@
 }
 
 /* 4. The Oracle Blue Submit Button */
-#form-MHQfjRH_10 button[type="submit"] {
+#form-MHQfjRH_10 button[type="submit"], .order-2step .btn-checkout {
     background-color: #3b82f6 !important; 
     color: #ffffff !important;
     font-family: 'Montserrat', sans-serif !important;
@@ -44,6 +44,26 @@
     margin-top: 10px !important;
 }
 
-#form-MHQfjRH_10 button[type="submit"]:hover {
+#form-MHQfjRH_10 button[type="submit"]:hover, .order-2step .btn-checkout:hover {
     background-color: #2563eb !important;
+}
+
+/* 6. 2-Step Order Form - Pattern Deletion */
+.ghl-2-step-order-form, 
+.order-2step, 
+.order-form-wrapper,
+.ghl-2-step-order-form .product-list,
+.ghl-2-step-order-form .product-item {
+    background-color: transparent !important;
+    background: transparent !important;
+    border: none !important;
+    color: #e2e8f0 !important;
+}
+
+/* Ensure form labels and text inside the 2-step are visible */
+.ghl-2-step-order-form .step-header,
+.ghl-2-step-order-form .product-name,
+.ghl-2-step-order-form .product-price {
+    color: #ffffff !important;
+    font-family: 'Montserrat', sans-serif !important;
 }
