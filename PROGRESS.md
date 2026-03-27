@@ -37,6 +37,9 @@ The project has successfully evolved into a hardened, mathematical deployment pl
 - **GoHighLevel Offer Page:** Built the "Dispatch Confirmed" banner and drafted 400 words of Halbert-grade copy ("The Voluntary Tax of Randomness") explaining the Prophet, Pragmatist, and Pattern Scouter engines. Wrote CSS overrides to force a transparent background on GHL's native 2-Step Order Form.
 
 ## Next Steps
+
+- **GHL Malware Bypass:** Successfully migrated the `ORACLE_DEAD_ZONE_REPORT.pdf` hosting from the generic GoHighLevel CDN (which triggers false-positive Chrome malware flags) to the dedicated GCP Cloud Run frontend (`oracleapp.moderncyph3r.com/ORACLE_DEAD_ZONE_REPORT.pdf`). Tested and verified clean delivery via LeadConnector SMTP.
+
 1. **GHL Funnel Construction:** Paste the generated HTML blocks into GoHighLevel Custom HTML elements and update global CSS.
 2. **The Automation Pipeline (Priority 1):** Configure GHL workflows for Opt-in (dispatch PDF via Zoho SMTP) and Purchase (capture Stripe webhook to auto-provision users via FastAPI).
 3. **The War Room Dashboard:** Build the React interface for `/api/admin/stats` to monitor syndicate growth and 3:00 AM API sync health.
