@@ -167,12 +167,40 @@ def ghl_webhook_provision(request_data: dict, token: str = None, db: Session = D
         logger.warning(f"Unauthorized webhook attempt blocked. Invalid token: {token}")
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid webhook secret")
         
-    # 2. Extract Payload
-    email = request_data.get("email")
-    first_name = request_data.get("first_name", "Technician")
+    # 2. Extract Payload (Robust Recursive Search for GHL)
+    email = None
+    first_name = "Technician"
+
+    # GHL Webhooks are notoriously nested (e.g., payload["contact"]["email"] or payload["email"])
+    # We will recursively search the entire JSON dictionary for the first valid email address.
+    def extract_email(data):
+        if isinstance(data, dict):
+            # Check common top-level keys first
+            if "email" in data and isinstance(data["email"], str) and "@" in data["email"]:
+                return data["email"]
+            if "emailLowerCase" in data and isinstance(data["emailLowerCase"], str) and "@" in data["emailLowerCase"]:
+                return data["emailLowerCase"]
+                
+            for key, value in data.items():
+                # Grab first name if we see it while hunting for the email
+                nonlocal first_name
+                if key in ["firstName", "first_name", "name"] and isinstance(value, str):
+                    first_name = value.split()[0]
+                
+                result = extract_email(value)
+                if result:
+                    return result
+        elif isinstance(data, list):
+            for item in data:
+                result = extract_email(item)
+                if result:
+                    return result
+        return None
+
+    email = extract_email(request_data)
     
     if not email:
-        logger.error("Webhook payload missing email address")
+        logger.error(f"Webhook payload missing email address. Payload received: {request_data}")
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Email is required")
         
     # Normalize email
