@@ -262,3 +262,34 @@
     color: #94a3b8 !important;
     opacity: 1;
 }
+
+
+/* THE ULTIMATE WHITE-OUT FOR STRIPE LABELS */
+.order-2step .step-2 label,
+.order-2step .step-2 span,
+.order-2step .step-2 p,
+.order-2step .step-2 .control-label,
+.order-2step .step-2 .form-label,
+.order-2step .step-2 [class*='label'],
+.order-2step .step-2 [class*='text'],
+.order-2step .payment-details label,
+.order-2step .payment-details span,
+.order-2step .stripe-element-container label,
+.order-2step .stripe-element-container span,
+.order-2step #two-setp-order-_Vc6mdNU_c label,
+.order-2step #two-setp-order-_Vc6mdNU_c span {
+    color: #ffffff !important;
+    -webkit-text-fill-color: #ffffff !important;
+    opacity: 1 !important;
+}
+
+/* Specifically target the Stripe placeholder text wrapper */
+.order-2step .StripeElement--empty {
+    color: #ffffff !important;
+}
+
+/* Ensure any sub-text or captions are also forced to white */
+.order-2step .step-2 .help-block,
+.order-2step .step-2 .caption-text {
+    color: #cbd5e1 !important;
+}
