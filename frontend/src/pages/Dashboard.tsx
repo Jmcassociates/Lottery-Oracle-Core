@@ -1,6 +1,6 @@
 // JMc - [2026-03-16] - Main Oracle Dashboard. Handles all authenticated interactions, Vault retrieval, and Reality Check execution.
 import { useState, useEffect } from 'react';
-import { fetchWithAuth, getTier, setToken, logout } from '../utils/auth';
+import { fetchWithAuth, getTier, logout } from '../utils/auth';
 
 const API_BASE = import.meta.env.VITE_API_URL || '';
 
