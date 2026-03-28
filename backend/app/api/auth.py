@@ -153,3 +153,53 @@ async def ghl_purchase_webhook(request: Request, db: Session = Depends(get_db)):
     EmailService.send_magic_link(user.email, magic_url)
     
     return {"status": "success", "message": f"User {email} provisioned and link dispatched."}
+
+
+@router.post("/webhook/ghl-provision")
+def ghl_webhook_provision(request_data: dict, token: str = None, db: Session = Depends(get_db)):
+    """
+    JMc - [2026-03-26] - Secure webhook receiver for GoHighLevel.
+    Triggered when a user successfully purchases the Pro Tier via Stripe in the GHL Funnel.
+    Creates or upgrades the user and dispatches a Magic Link via SMTP.
+    """
+    # 1. Security Check (Token must match environment variable)
+    if token != GHL_WEBHOOK_SECRET:
+        logger.warning(f"Unauthorized webhook attempt blocked. Invalid token: {token}")
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid webhook secret")
+        
+    # 2. Extract Payload
+    email = request_data.get("email")
+    first_name = request_data.get("first_name", "Technician")
+    
+    if not email:
+        logger.error("Webhook payload missing email address")
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Email is required")
+        
+    # Normalize email
+    email = email.lower().strip()
+    
+    # 3. Database Operations
+    user = db.query(User).filter(User.email == email).first()
+    
+    if user:
+        # In-App Upgrade Path: User already exists from the free tier PDF opt-in
+        user.tier = "pro"
+        logger.info(f"Oracle Provisioning: Upgraded existing user {email} to PRO tier.")
+    else:
+        # Direct Funnel Purchase: User is brand new
+        user = User(email=email, tier="pro")
+        db.add(user)
+        logger.info(f"Oracle Provisioning: Created new PRO user {email}.")
+        
+    db.commit()
+    
+    # 4. Generate Magic Link and Dispatch Email
+    magic_token = create_magic_link_token(email)
+    success = EmailService.send_magic_link(email=email, token=magic_token)
+    
+    if not success:
+        logger.error(f"Oracle Provisioning: User {email} upgraded, but SMTP dispatch failed.")
+        # We don't return a 500 to GHL, because the provisioning worked. Just log it.
+        return {"status": "success", "user": email, "email_dispatched": False}
+        
+    return {"status": "success", "user": email, "email_dispatched": True}

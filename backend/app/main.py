@@ -500,20 +500,6 @@ def get_game_history(game_name: str, limit: int = 10, db: Session = Depends(get_
         } for d in draws
     ]
 
-@app.post("/api/user/upgrade")
-def upgrade_user_tier(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
-    """
-    JMc - [2026-03-16] - Mock Billing Bypass.
-    In production (GoHighLevel handoff), this would process webhooks to upgrade tier status.
-    """
-    current_user.tier = "pro"
-    db.commit()
-    access_token = create_access_token(
-        data={"sub": current_user.email}, 
-        expires_delta=timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
-    )
-    return {"access_token": access_token, "tier": "pro"}
-
 @app.post("/api/generate/{game_name}")
 def generate_tickets(game_name: str, num_tickets: int = 5, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     """

@@ -105,17 +105,9 @@ const Dashboard = () => {
     }
   };
 
-  const handleUpgrade = async () => {
-    try {
-      const res = await fetchWithAuth('/api/user/upgrade', { method: 'POST' });
-      if (res.ok) {
-        const data = await res.json();
-        setToken(data.access_token, data.tier);
-        window.location.reload(); 
-      }
-    } catch (e) {
-      console.error("Upgrade failed", e);
-    }
+  const handleUpgrade = () => {
+    // JMc - [2026-03-26] - Redirects the user to the GHL Funnel Paywall.
+    window.location.href = "https://oracle.moderncyph3r.com/offering-page";
   };
 
   const generateTickets = async () => {
