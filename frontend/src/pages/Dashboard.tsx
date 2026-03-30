@@ -194,7 +194,7 @@ const Dashboard = () => {
     <div className="container">
       <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div>
-          <h1>Oracle Back Office</h1>
+          <h1>Oracle Command Terminal</h1>
           <p className="subtitle">Tier Protocol: <span style={{ color: 'var(--accent)', textTransform: 'uppercase' }}>{tier}</span></p>
         </div>
         <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>

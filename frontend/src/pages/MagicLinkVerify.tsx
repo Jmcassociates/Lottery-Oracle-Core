@@ -30,10 +30,11 @@ const MagicLinkVerify = () => {
         const data = await res.json();
 
         if (res.ok) {
-          setToken(data.access_token, data.tier, data.is_admin);
+                    setToken(data.access_token, data.tier, data.is_admin);
           setStatus('success');
-          // Redirect after a short delay for UX
-          setTimeout(() => navigate('/dashboard'), 1500);
+          // JMc - [2026-03-28] - Smart Redirect: Move admins straight to the War Room.
+          const target = data.is_admin ? '/admin' : '/dashboard';
+          setTimeout(() => navigate(target), 1500);
         } else {
           setStatus('error');
           setErrorMessage(data.detail || 'The magic link has expired or has been corrupted.');

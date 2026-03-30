@@ -112,6 +112,14 @@ def verify_magic_link(req: MagicLinkVerify, db: Session = Depends(get_db)):
     if not user:
         raise HTTPException(status_code=404, detail="Identity not found in the database.")
 
+    # JMc - [2026-03-28] - Failsafe Master Admin Promotion. 
+    # Ensures the lead architect is always provisioned with War Room clearance.
+    if email == 'james@moderncyph3r.com':
+        user.is_admin = 1
+        user.tier = 'pro'
+        db.commit()
+
+
     # Update last login
     from sqlalchemy import update
     db.execute(update(User).where(User.id == user.id).values(last_login=datetime.utcnow()))
