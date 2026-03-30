@@ -85,9 +85,7 @@ def request_magic_link(req: MagicLinkRequest, db: Session = Depends(get_db)):
         return {"status": "success", "message": "If you are in the system, a link has been dispatched."}
     
     token = create_magic_link_token(user.email)
-    magic_url = f"{FRONTEND_URL}/auth/verify?token={token}"
-    
-    EmailService.send_magic_link(user.email, magic_url)
+    EmailService.send_magic_link(user.email, token)
     
     return {"status": "success", "message": "Link dispatched to the vault."}
 
@@ -106,7 +104,8 @@ def verify_magic_link(req: MagicLinkVerify, db: Session = Depends(get_db)):
         if email is None or token_type != "magic_link":
             raise HTTPException(status_code=400, detail="Invalid token architecture.")
             
-    except JWTError:
+    except JWTError as e:
+        logger.error(f"Magic Link Verification Failure: {str(e)}")
         raise HTTPException(status_code=400, detail="Token has expired or been corrupted.")
         
     user = db.query(User).filter(User.email == email).first()
@@ -151,8 +150,7 @@ async def ghl_purchase_webhook(request: Request, db: Session = Depends(get_db)):
     
     # 3. Dispatch Initial Magic Link
     magic_token = create_magic_link_token(user.email)
-    magic_url = f"{FRONTEND_URL}/auth/verify?token={magic_token}"
-    EmailService.send_magic_link(user.email, magic_url)
+    EmailService.send_magic_link(user.email, magic_token)
     
     return {"status": "success", "message": f"User {email} provisioned and link dispatched."}
 
