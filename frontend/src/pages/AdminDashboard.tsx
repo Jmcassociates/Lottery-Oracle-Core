@@ -2,8 +2,6 @@ import { useState, useEffect } from 'react';
 import { fetchWithAuth, isAdmin, logout } from '../utils/auth';
 import { useNavigate } from 'react-router-dom';
 
-const API_BASE = import.meta.env.VITE_API_URL || '';
-
 interface AdminStats {
   status: string;
   syndicate_metrics: {
