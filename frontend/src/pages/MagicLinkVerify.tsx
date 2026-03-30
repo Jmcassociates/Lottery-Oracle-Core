@@ -30,7 +30,7 @@ const MagicLinkVerify = () => {
         const data = await res.json();
 
         if (res.ok) {
-          setToken(data.access_token, data.tier);
+          setToken(data.access_token, data.tier, data.is_admin);
           setStatus('success');
           // Redirect after a short delay for UX
           setTimeout(() => navigate('/dashboard'), 1500);

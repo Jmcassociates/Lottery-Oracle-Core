@@ -34,6 +34,7 @@ class Token(BaseModel):
     access_token: str
     token_type: str
     tier: str
+    is_admin: bool
 
 @router.post("/register", response_model=Token)
 def register(user: UserCreate, db: Session = Depends(get_db)):
@@ -70,7 +71,7 @@ def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depend
         data={"sub": user.email}, expires_delta=access_token_expires
     )
     
-    return {"access_token": access_token, "token_type": "bearer", "tier": user.tier}
+    return {"access_token": access_token, "token_type": "bearer", "tier": user.tier, "is_admin": bool(user.is_admin)}
 
 @router.post("/request-magic-link")
 def request_magic_link(req: MagicLinkRequest, db: Session = Depends(get_db)):
@@ -117,7 +118,7 @@ def verify_magic_link(req: MagicLinkVerify, db: Session = Depends(get_db)):
     db.commit()
 
     access_token = create_access_token(data={"sub": user.email})
-    return {"access_token": access_token, "token_type": "bearer", "tier": user.tier}
+    return {"access_token": access_token, "token_type": "bearer", "tier": user.tier, "is_admin": bool(user.is_admin)}
 
 @router.post("/ghl-webhook")
 async def ghl_purchase_webhook(request: Request, db: Session = Depends(get_db)):
