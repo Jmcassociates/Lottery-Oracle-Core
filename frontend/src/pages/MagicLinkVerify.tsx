@@ -36,7 +36,7 @@ const MagicLinkVerify = () => {
           setTimeout(() => navigate('/dashboard'), 1500);
         } else {
           setStatus('error');
-          setErrorMessage(data.detail || 'The magic link has expired or is invalid.');
+          setErrorMessage(data.detail || 'The magic link has expired or has been corrupted.');
         }
       } catch (err) {
         setStatus('error');

@@ -106,7 +106,7 @@ def verify_magic_link(req: MagicLinkVerify, db: Session = Depends(get_db)):
             
     except JWTError as e:
         logger.error(f"Magic Link Verification Failure: {str(e)}")
-        raise HTTPException(status_code=400, detail="Token has expired or been corrupted.")
+        raise HTTPException(status_code=400, detail="Token has expired or has been corrupted.")
         
     user = db.query(User).filter(User.email == email).first()
     if not user:
