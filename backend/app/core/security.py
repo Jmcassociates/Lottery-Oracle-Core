@@ -35,9 +35,9 @@ def create_access_token(data: dict, expires_delta: timedelta | None = None):
 def create_magic_link_token(email: str):
     """
     JMc - [2026-03-18] - Generates a high-entropy, short-lived token for passwordless auth.
-    Hard-coded to 15 minutes to minimize exposure window.
+    Increased to 60 minutes to handle real-world email delivery latency.
     """
-    expires_delta = timedelta(minutes=15)
+    expires_delta = timedelta(minutes=60)
     return create_access_token(data={"sub": email, "type": "magic_link"}, expires_delta=expires_delta)
 
 def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):

@@ -98,7 +98,8 @@ def verify_magic_link(req: MagicLinkVerify, db: Session = Depends(get_db)):
     Exchanges a 15-minute magic token for a standard 7-day session token.
     """
     try:
-        payload = jwt.decode(req.token, SECRET_KEY, algorithms=[ALGORITHM])
+        # JMc - [2026-03-28] - Added 60s leeway to account for server clock drift in Cloud Run environment.
+        payload = jwt.decode(req.token, SECRET_KEY, algorithms=[ALGORITHM], options={"leeway": 60})
         email: str = payload.get("sub")
         token_type: str = payload.get("type")
         
