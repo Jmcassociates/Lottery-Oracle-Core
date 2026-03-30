@@ -28,7 +28,7 @@ from app.services.engine import LotteryMathEngine
 from app.services.permutation_engine import PermutationMathEngine
 from app.services.scraper import JackpotScraper
 from app.services.exporter import PDFExporter
-from app.api import auth
+from app.api import auth, admin
 from app.api.auth import GHL_WEBHOOK_SECRET
 from migrate_v2 import migrate as run_schema_migration
 from migrate_v2_1 import migrate as run_nat_migration
@@ -359,6 +359,7 @@ app.add_middleware(
 )
 
 app.include_router(auth.router, prefix="/api/auth", tags=["auth"])
+app.include_router(admin.router, prefix="/api/admin", tags=["admin"])
 
 def run_sync_task():
     logger.info("Oracle - Manual Sync - Starting background ingestion...")
