@@ -99,27 +99,50 @@ def run_sync_task():
         logger.error(f"Oracle - Manual Sync - Global Failure during background sync: {e}")
 
 @app.post("/api/admin/sync")
-def trigger_sync(request: Request):
+def trigger_sync(request: Request, db: Session = Depends(get_db)):
     """
-    JMc - [2026-03-18] - Secured Sync Trigger.
-    Now requires the GHL_WEBHOOK_SECRET in the header to prevent unauthorized heavy tasks.
+    JMc - [2026-03-28] - Flexible Sync Trigger.
+    Accepts EITHER the X-GHL-Verify header (for Cron) OR a valid Admin JWT (for War Room).
     """
-    token = request.headers.get("X-GHL-Verify")
-    # For local admin testing, we skip header check if session is admin
-    # but for Cloud Scheduler we keep it strict.
+    ghl_token = request.headers.get("X-GHL-Verify")
+    is_authorized = False
+
+    # 1. Check for the Cloud Scheduler/GHL secret
+    if ghl_token == GHL_WEBHOOK_SECRET:
+        is_authorized = True
+        logger.info("Oracle - Manual Sync - Verified Cron/GHL trigger received.")
     
+    # 2. Check for a valid Admin JWT session (War Room manual trigger)
+    else:
+        auth_header = request.headers.get("Authorization")
+        if auth_header and auth_header.startswith("Bearer "):
+            token = auth_header.split(" ")[1]
+            try:
+                from app.core.security import ALGORITHM, SECRET_KEY
+                from jose import jwt
+                payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+                email: str = payload.get("sub")
+                if email:
+                    user = db.query(User).filter(User.email == email).first()
+                    if user and user.is_admin:
+                        is_authorized = True
+                        logger.info(f"Oracle - Manual Sync - Verified Admin session for {email}.")
+            except Exception as e:
+                logger.warning(f"Oracle - Manual Sync - JWT verification failed: {e}")
+
+    if not is_authorized:
+        logger.warning(f"Unauthorized sync attempt from IP: {request.client.host}")
+        raise HTTPException(status_code=403, detail="Administrative Clearance Required.")
+        
     global SYNC_IN_PROGRESS
     if SYNC_IN_PROGRESS:
         raise HTTPException(status_code=409, detail="A synchronization protocol is already active. Please wait for termination.")
 
-    if token != GHL_WEBHOOK_SECRET:
-        logger.warning(f"Unauthorized sync attempt from IP: {request.client.host}")
-        raise HTTPException(status_code=403, detail="Administrative Clearance Required.")
-        
-    logger.info("Oracle - Manual Sync - Verified trigger received. Spawning background thread.")
+    logger.info("Oracle - Manual Sync - Spawning background thread.")
     thread = threading.Thread(target=run_sync_task)
     thread.start()
     return {"status": "Sync triggered in background"}
+
 
 
 @app.get("/api/admin/health")
