@@ -41,7 +41,12 @@ app = FastAPI(title="Lottery Oracle API", lifespan=lifespan)
 # JMc - [2026-03-18] - Enabled CORS since React Frontend directly calls this URL in Cloud Run
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=[
+        "https://oracleapp.moderncyph3r.com",
+        "https://oracle-frontend-ca5k2evwwq-ue.a.run.app",
+        "http://localhost:5173",
+        "http://localhost:3000"
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
