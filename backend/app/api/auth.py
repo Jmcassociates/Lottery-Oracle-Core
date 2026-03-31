@@ -1,4 +1,5 @@
 import os
+import logging
 from fastapi import APIRouter, Depends, HTTPException, status, Request
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
@@ -14,6 +15,7 @@ from app.core.security import (
 )
 from app.services.email import EmailService
 
+logger = logging.getLogger(__name__)
 router = APIRouter()
 
 # JMc - [2026-03-18] - Secrets for secure webhook ingestion
