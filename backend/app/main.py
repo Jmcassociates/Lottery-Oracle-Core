@@ -9,7 +9,7 @@ from datetime import datetime, timedelta, timezone
 from app.core.database import engine, Base, get_db
 from app.core.models import DrawRecord, SavedTicketBatch, SavedTicket, User, SyncLog
 from app.core.security import get_current_user, create_access_token, ACCESS_TOKEN_EXPIRE_MINUTES
-from app.core.config import GAMES
+from app.core.config import GAMES, SYNC_STATE
 from app.services.engine import LotteryMathEngine
 from app.services.permutation_engine import PermutationMathEngine
 from app.services.scraper import JackpotScraper
@@ -23,8 +23,6 @@ from migrate_v2_1 import migrate as run_nat_migration
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# JMc - [2026-03-28] - Global Sync Lock to prevent CPU exhaustion from duplicate triggers.
-SYNC_IN_PROGRESS = False
 
 
 
@@ -69,8 +67,7 @@ app.include_router(admin.router, prefix="/api/admin", tags=["admin"])
 
 
 def run_sync_task():
-    global SYNC_IN_PROGRESS
-    SYNC_IN_PROGRESS = True
+    SYNC_STATE["active"] = True
     logger.info("Oracle - Manual Sync - [PHASE 0] Initializing Background Protocol...")
     sync_results = {}
     db = next(get_db())
@@ -133,7 +130,7 @@ def run_sync_task():
     except Exception as global_err:
         logger.error(f"Oracle - Manual Sync - [PHASE 99] GLOBAL PROTOCOL FAILURE: {global_err}")
     finally:
-        SYNC_IN_PROGRESS = False
+        SYNC_STATE["active"] = False
         db.close()
 
 
@@ -172,8 +169,7 @@ def trigger_sync(request: Request, db: Session = Depends(get_db)):
         logger.warning(f"Unauthorized sync attempt blocked from IP: {request.client.host}")
         raise HTTPException(status_code=403, detail="Administrative Clearance Required.")
         
-    global SYNC_IN_PROGRESS
-    if SYNC_IN_PROGRESS:
+    if SYNC_STATE["active"]:
         logger.warning("Oracle - Manual Sync - Trigger rejected: Sync already in progress.")
         raise HTTPException(status_code=409, detail="A synchronization protocol is already active. Please wait for termination.")
 

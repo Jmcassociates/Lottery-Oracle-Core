@@ -14,6 +14,10 @@ from app.services.fetchers import (
     NewYorkPick4Fetcher
 )
 
+# JMc - [2026-03-31] - Global Sync State
+# Using a dictionary to ensure the state is mutable across modules.
+SYNC_STATE = {"active": False}
+
 # JMc - [2026-03-28] - Centralized Game Configurations. 
 # Enables rapid expansion to new states and unified sync health tracking.
 GAMES = {

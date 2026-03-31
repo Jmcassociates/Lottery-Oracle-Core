@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy import func
 from app.core.database import get_db
 from app.core.models import User, DrawRecord, SyncLog
-from app.core.config import GAMES
+from app.core.config import GAMES, SYNC_STATE
 from app.core.security import get_current_user
 from datetime import datetime, timedelta
 import logging
@@ -53,6 +53,7 @@ def get_admin_stats(db: Session = Depends(get_db), current_admin: User = Depends
 
     return {
         "status": "online",
+        "sync_active": SYNC_STATE["active"],
         "syndicate_metrics": {
             "total_users": total_users,
             "pro_tier": pro_users,

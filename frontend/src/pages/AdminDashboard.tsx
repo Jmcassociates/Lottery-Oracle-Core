@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 
 interface AdminStats {
   status: string;
+  sync_active: boolean;
   syndicate_metrics: {
     total_users: number;
     pro_tier: number;
@@ -48,19 +49,6 @@ const AdminDashboard = () => {
     }
     fetchData();
     
-    // Initial poll for background sync status
-    const checkSyncStatus = async () => {
-        try {
-            const res = await fetchWithAuth('/api/admin/logs?limit=14');
-            if (res.ok) {
-                const latestLogs: SyncLog[] = await res.json();
-                const stillImporting = latestLogs.some(l => l.status === 'IMPORTING');
-                if (stillImporting) startPolling();
-            }
-        } catch (e) { /* silent fail on initial check */ }
-    };
-    checkSyncStatus();
-
     return () => {
       if (pollInterval.current) window.clearInterval(pollInterval.current);
     };
@@ -75,16 +63,16 @@ const AdminDashboard = () => {
       ]);
 
       if (statsRes.ok && usersRes.ok && logsRes.ok) {
-        const statsData = await statsRes.json();
-        const logsData = await logsRes.json();
+        const statsData: AdminStats = await statsRes.json();
         setStats(statsData);
         setUsers(await usersRes.json());
-        setLogs(logsData);
+        setLogs(await logsRes.json());
 
-        // Auto-stop polling if nothing is importing anymore
-        const stillImporting = logsData.some((l: SyncLog) => l.status === 'IMPORTING');
-        if (!stillImporting && isSyncing) {
-            stopPolling();
+        // JMc - [2026-03-31] - Source of Truth: Check the actual backend sync lock
+        if (statsData.sync_active) {
+            if (!pollInterval.current) startPolling();
+        } else {
+            if (pollInterval.current) stopPolling();
         }
       } else {
         setError("Technician clearance rejected by API.");
