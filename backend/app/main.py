@@ -27,9 +27,14 @@ import threading
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # JMc - [2026-03-18] - DB initialization moved to manual sync trigger 
-    # to prevent boot-time crashes on connection failures.
+    # JMc - [2026-03-28] - Auto-migration on boot to ensure War Room tables exist.
+    try:
+        from migrate_v2 import migrate
+        migrate()
+    except Exception as e:
+        logger.error(f"Oracle - Boot Failure - Migration failed: {e}")
     yield
+
 
 app = FastAPI(title="Lottery Oracle API", lifespan=lifespan)
 
