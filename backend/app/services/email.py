@@ -108,8 +108,13 @@ class EmailService:
         message["From"] = f"{from_name} <{from_email}>"
         message["To"] = to_email
 
-        part = MIMEText(html_content, "html")
-        message.attach(part)
+        # JMc - [2026-03-31] - Added Plain Text fallback to kill spam filters.
+        text_content = f"{subject}\n\nThis is an automated transmission from the Oracle. Please view in an HTML-capable client."
+        part1 = MIMEText(text_content, "plain")
+        part2 = MIMEText(html_content, "html")
+        
+        message.attach(part1)
+        message.attach(part2)
 
         try:
             # JMc - [2026-03-18] - Port 465 requires SMTP_SSL (Implicit SSL)

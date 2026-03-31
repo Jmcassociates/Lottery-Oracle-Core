@@ -79,14 +79,20 @@ def request_magic_link(req: MagicLinkRequest, db: Session = Depends(get_db)):
     JMc - [2026-03-18] - Forged on demand. 
     Allows existing users to login without a password.
     """
+    logger.info(f"Oracle - Auth - Magic Link Request initiated for {req.email}")
     user = db.query(User).filter(User.email == req.email).first()
     if not user:
+        logger.info(f"Oracle - Auth - Identity {req.email} not found. Silent success triggered.")
         # JMc - Silent failure for security (prevents user enumeration)
         return {"status": "success", "message": "If you are in the system, a link has been dispatched."}
     
+    logger.info(f"Oracle - Auth - Forging token for {user.email}...")
     token = create_magic_link_token(user.email)
+    
+    logger.info(f"Oracle - Auth - Token forged. Handing off to EmailService...")
     EmailService.send_magic_link(user.email, token)
     
+    logger.info(f"Oracle - Auth - Dispatch sequence complete for {user.email}")
     return {"status": "success", "message": "Link dispatched to the vault."}
 
 @router.post("/verify-magic-link", response_model=Token)
