@@ -26,8 +26,16 @@ SYNC_IN_PROGRESS = False
 
 
 
+
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.util import get_remote_address
+from slowapi.errors import RateLimitExceeded
 from fastapi.middleware.cors import CORSMiddleware
 import threading
+
+# JMc - [2026-03-31] - Defensive Rate Limiting
+limiter = Limiter(key_func=get_remote_address)
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -37,6 +45,8 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(title="Lottery Oracle API", lifespan=lifespan)
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 # JMc - [2026-03-18] - Enabled CORS since React Frontend directly calls this URL in Cloud Run
 app.add_middleware(
@@ -181,32 +191,6 @@ def admin_health_check():
     """
     return {"status": "operational", "version": "2.1.0"}
 
-@app.get("/api/admin/stats")
-def get_admin_stats(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
-    """
-    JMc - [2026-03-18] - System Pulse. 
-    Returns database row counts and user metrics for the War Room blade.
-    Requires Administrative Clearance.
-    """
-    if not current_user.is_admin:
-        raise HTTPException(status_code=403, detail="Administrative Clearance Required.")
-        
-    game_stats = {}
-    for game in GAMES.keys():
-        count = db.query(DrawRecord).filter(DrawRecord.game_name.startswith(game)).count()
-        game_stats[game] = count
-        
-    user_count = db.query(User).count()
-    pro_users = db.query(User).filter(User.tier == "pro").count()
-    
-    return {
-        "games": game_stats,
-        "users": {
-            "total": user_count,
-            "pro": pro_users,
-            "free": user_count - pro_users
-        }
-    }
 
 @app.get("/api/states")
 def list_states():
@@ -255,7 +239,8 @@ def get_game_history(game_name: str, limit: int = 10, db: Session = Depends(get_
     ]
 
 @app.post("/api/generate/{game_name}")
-def generate_tickets(game_name: str, num_tickets: int = 5, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+@limiter.limit("10/minute")
+def generate_tickets(request: Request, game_name: str, num_tickets: int = 5, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     """
     JMc - [2026-03-16] - The core Oracle generation controller.
     Dynamically routes combinatorial games to LotteryMathEngine and permutation games to PermutationMathEngine.

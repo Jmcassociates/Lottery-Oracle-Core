@@ -2,6 +2,10 @@ import os
 import logging
 from fastapi import APIRouter, Depends, HTTPException, status, Request
 from fastapi.security import OAuth2PasswordRequestForm
+from slowapi import Limiter
+from slowapi.util import get_remote_address
+
+limiter = Limiter(key_func=get_remote_address)
 from sqlalchemy.orm import Session
 from datetime import timedelta, datetime
 from pydantic import BaseModel, EmailStr
@@ -18,8 +22,10 @@ from app.services.email import EmailService
 logger = logging.getLogger(__name__)
 router = APIRouter()
 
-# JMc - [2026-03-18] - Secrets for secure webhook ingestion
-GHL_WEBHOOK_SECRET = os.getenv("GHL_WEBHOOK_SECRET", "moderncyph3r_debug_key")
+# JMc - [2026-03-31] - Secrets for secure webhook ingestion
+GHL_WEBHOOK_SECRET = os.getenv("GHL_WEBHOOK_SECRET")
+if not GHL_WEBHOOK_SECRET:
+    raise RuntimeError("CRITICAL SECRETS MISSING: GHL_WEBHOOK_SECRET environment variable is not set. Halting boot sequence.")
 FRONTEND_URL = os.getenv("FRONTEND_URL", "https://oracleapp.moderncyph3r.com")
 
 class UserCreate(BaseModel):
@@ -76,7 +82,8 @@ def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depend
     return {"access_token": access_token, "token_type": "bearer", "tier": user.tier, "is_admin": bool(user.is_admin)}
 
 @router.post("/request-magic-link")
-def request_magic_link(req: MagicLinkRequest, db: Session = Depends(get_db)):
+@limiter.limit("5/minute")
+def request_magic_link(request: Request, req: MagicLinkRequest, db: Session = Depends(get_db)):
     """
     JMc - [2026-03-18] - Forged on demand. 
     Allows existing users to login without a password.
@@ -136,53 +143,21 @@ def verify_magic_link(req: MagicLinkVerify, db: Session = Depends(get_db)):
     access_token = create_access_token(data={"sub": user.email})
     return {"access_token": access_token, "token_type": "bearer", "tier": user.tier, "is_admin": bool(user.is_admin)}
 
-@router.post("/ghl-webhook")
-async def ghl_purchase_webhook(request: Request, db: Session = Depends(get_db)):
-    """
-    JMc - [2026-03-18] - The Paywall Breach. 
-    Receives purchase confirmation from GoHighLevel, provisions user, and dispatches Magic Link.
-    """
-    # 1. Verify Webhook Secret
-    token = request.headers.get("X-GHL-Verify")
-    if token != GHL_WEBHOOK_SECRET:
-        raise HTTPException(status_code=403, detail="Unauthorized transmission.")
-        
-    data = await request.json()
-    email = data.get("email")
-    if not email:
-        raise HTTPException(status_code=400, detail="Missing payload identity (email).")
-        
-    # 2. Provision or Upgrade User
-    user = db.query(User).filter(User.email == email).first()
-    if not user:
-        user = User(email=email, tier="pro", is_active=1)
-        db.add(user)
-    else:
-        user.tier = "pro"
-        user.is_active = 1
-        
-    db.commit()
-    db.refresh(user)
-    
-    # 3. Dispatch Initial Magic Link
-    magic_token = create_magic_link_token(user.email)
-    EmailService.send_magic_link(user.email, magic_token)
-    
-    return {"status": "success", "message": f"User {email} provisioned and link dispatched."}
-
-
 @router.post("/webhook/ghl-provision")
-def ghl_webhook_provision(request_data: dict, token: str = None, db: Session = Depends(get_db)):
+async def ghl_webhook_provision(request: Request, db: Session = Depends(get_db)):
     """
-    JMc - [2026-03-26] - Secure webhook receiver for GoHighLevel.
+    JMc - [2026-03-31] - Consolidated, secure webhook receiver for GoHighLevel.
     Triggered when a user successfully purchases the Pro Tier via Stripe in the GHL Funnel.
     Creates or upgrades the user and dispatches a Magic Link via SMTP.
     """
-    # 1. Security Check (Token must match environment variable)
+    # 1. Security Check (Header-based)
+    token = request.headers.get("X-GHL-Verify")
     if token != GHL_WEBHOOK_SECRET:
         logger.warning(f"Unauthorized webhook attempt blocked. Invalid token: {token}")
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid webhook secret")
         
+    request_data = await request.json()
+    
     # 2. Extract Payload (Robust Recursive Search for GHL)
     email = None
     first_name = "Technician"

@@ -2,7 +2,7 @@
 import logging
 from app.core.database import engine, Base, get_db
 from app.core.models import DrawRecord
-from app.main import GAMES
+from app.core.config import GAMES
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
