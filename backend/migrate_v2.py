@@ -80,6 +80,7 @@ def migrate():
         logger.warning(f"Oracle - Migration Warning - Could not create sync_logs: {e}")
 
     logger.info("Migration v2.0 complete.")
+    engine.dispose()
 
 if __name__ == "__main__":
     migrate()

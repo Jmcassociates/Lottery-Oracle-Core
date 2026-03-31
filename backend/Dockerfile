@@ -17,5 +17,6 @@ COPY ./migrate_v2_1.py .
 # We must bind Gunicorn to this dynamic variable, not a hardcoded port.
 # Also removed `python init_db.py` from boot sequence to prevent 5-minute timeouts on massive historical syncs.
 # Bumped timeout to 300s to handle deep-history Markov scoring on large datasets.
-CMD ["sh", "-c", "gunicorn app.main:app --workers 4 --worker-class uvicorn.workers.UvicornWorker --bind 0.0.0.0:${PORT:-8000} --timeout 300"]
+# JMc - 2026-03-31 - Reduced workers to 2 to prevent DB connection exhaustion on small instances.
+CMD ["sh", "-c", "gunicorn app.main:app --workers 2 --worker-class uvicorn.workers.UvicornWorker --bind 0.0.0.0:${PORT:-8000} --timeout 300"]
 

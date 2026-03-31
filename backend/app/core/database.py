@@ -10,9 +10,15 @@ connect_args = {}
 if DATABASE_URL.startswith("sqlite"):
     connect_args["check_same_thread"] = False
 
+# JMc - [2026-03-31] - Hardening connection pool for Cloud Run.
+# Default limits are too high for a small Postgres instance with multiple workers.
 engine = create_engine(
     DATABASE_URL, 
-    connect_args=connect_args
+    connect_args=connect_args,
+    pool_size=5,
+    max_overflow=10,
+    pool_timeout=30,
+    pool_recycle=1800
 )
 
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
