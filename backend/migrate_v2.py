@@ -1,5 +1,5 @@
 import os
-from sqlalchemy import create_engine, text
+from sqlalchemy import create_engine, text, Table, Column, Integer, String, DateTime, func, MetaData
 import logging
 
 logging.basicConfig(level=logging.INFO)
@@ -60,6 +60,24 @@ def migrate():
             logger.info("James McCabe promoted to Lead Architect (Admin status locked).")
         except Exception as e:
             logger.warning(f"Could not bootstrap admin: {e}")
+
+    # 6. Create sync_logs table if it doesn't exist
+    try:
+        logger.info("Oracle - Migration - Ensuring sync_logs table exists...")
+        metadata = MetaData()
+        sync_logs = Table(
+            'sync_logs', metadata,
+            Column('id', Integer, primary_key=True),
+            Column('game_name', String, index=True, nullable=False),
+            Column('status', String, nullable=False),
+            Column('new_records', Integer, default=0),
+            Column('error_message', String, nullable=True),
+            Column('executed_at', DateTime(timezone=True), server_default=func.now())
+        )
+        metadata.create_all(engine)
+        logger.info("sync_logs table verified/created.")
+    except Exception as e:
+        logger.warning(f"Oracle - Migration Warning - Could not create sync_logs: {e}")
 
     logger.info("Migration v2.0 complete.")
 
