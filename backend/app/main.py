@@ -54,35 +54,58 @@ app.add_middleware(
 app.include_router(auth.router, prefix="/api/auth", tags=["auth"])
 app.include_router(admin.router, prefix="/api/admin", tags=["admin"])
 
+
 def run_sync_task():
-    logger.info("Oracle - Manual Sync - Starting background ingestion...")
+    global SYNC_IN_PROGRESS
+    SYNC_IN_PROGRESS = True
+    logger.info("Oracle - Manual Sync - [PHASE 0] Starting background ingestion...")
     sync_results = {}
+    db = next(get_db())
+    
     try:
-        # JMc - [2026-03-18] - Ensure the database schema is up to date before syncing.
-        logger.info("Oracle - Manual Sync - Executing schema migration v2.0...")
-        run_schema_migration()
-        
-        # JMc - [2026-03-18] - Re-align National games with the NAT mandate.
-        logger.info("Oracle - Manual Sync - Executing NAT migration v2.1...")
-        run_nat_migration()
-        
-        db = next(get_db())
+        # JMc - [2026-03-28] - Migration Logic
+        logger.info("Oracle - Manual Sync - [PHASE 1] Executing schema migrations...")
+        try:
+            run_schema_migration()
+            run_nat_migration()
+            logger.info("Oracle - Manual Sync - [PHASE 1] Migrations complete.")
+        except Exception as mig_err:
+            logger.error(f"Oracle - Manual Sync - [PHASE 1] Migration Error: {mig_err}")
+            # We continue anyway, maybe it already exists.
+
         for game_name, config in GAMES.items():
-            logger.info(f"Oracle - Manual Sync - Processing {game_name}...")
+            logger.info(f"Oracle - Manual Sync - [PHASE 2] Processing {game_name}...")
+            
+            # Initial Status Entry
+            log_entry = SyncLog(game_name=game_name, status="IMPORTING", new_records=0)
+            db.add(log_entry)
+            db.commit()
+            
             try:
                 fetcher = config["fetcher"]()
                 new_count = fetcher.sync_to_db(db)
+                
+                log_entry.status = "SUCCESS" if new_count > 0 else "UP_TO_DATE"
+                log_entry.new_records = new_count
                 sync_results[game_name] = f"Added {new_count} new draws." if new_count > 0 else "Up to date."
+                logger.info(f"Oracle - Manual Sync - [PHASE 2] {game_name} completed: {sync_results[game_name]}")
+                
             except Exception as e:
-                logger.error(f"Oracle - Sync Failure - {game_name}: {e}")
-                sync_results[game_name] = f"FAILED: {str(e)[:50]}..."
+                error_str = str(e)[:250]
+                logger.error(f"Oracle - Manual Sync - [PHASE 2] Sync Failure - {game_name}: {e}")
+                sync_results[game_name] = f"FAILED: {error_str[:50]}..."
+                log_entry.status = "FAILED"
+                log_entry.error_message = error_str
+            
+            db.commit()
 
-        # JMc - [2026-03-18] - Collect Syndicate Stats for the report
+        # Collect Stats for Pulse Report
+        logger.info("Oracle - Manual Sync - [PHASE 3] Collecting syndicate statistics...")
         user_total = db.query(User).count()
         user_pro = db.query(User).filter(User.tier == "pro").count()
         total_records = db.query(DrawRecord).count()
 
-        # JMc - [2026-03-18] - Dispatch the Executive Briefing
+        # Dispatch the Executive Briefing
         report_data = {
             "sync_results": sync_results,
             "user_total": user_total,
@@ -90,19 +113,21 @@ def run_sync_task():
             "total_records": total_records
         }
         
-        # JMc - [2026-03-18] - Priority: ADMIN_EMAIL env var > James's direct address > From Address
         admin_email = os.getenv("ADMIN_EMAIL", "james@moderncyph3r.com")
         EmailService.send_admin_report(admin_email, report_data)
-        
-        logger.info("Oracle - Manual Sync - Background sync complete. Pulse report dispatched.")
-    except Exception as e:
-        logger.error(f"Oracle - Manual Sync - Global Failure during background sync: {e}")
+        logger.info("Oracle - Manual Sync - [PHASE 4] Pulse report dispatched. Protocol terminating.")
+
+    except Exception as global_err:
+        logger.error(f"Oracle - Manual Sync - Global Failure during background sync: {global_err}")
+    finally:
+        SYNC_IN_PROGRESS = False
+        db.close()
+
 
 @app.post("/api/admin/sync")
 def trigger_sync(request: Request, db: Session = Depends(get_db)):
     """
     JMc - [2026-03-28] - Flexible Sync Trigger.
-    Accepts EITHER the X-GHL-Verify header (for Cron) OR a valid Admin JWT (for War Room).
     """
     ghl_token = request.headers.get("X-GHL-Verify")
     is_authorized = False
@@ -112,7 +137,7 @@ def trigger_sync(request: Request, db: Session = Depends(get_db)):
         is_authorized = True
         logger.info("Oracle - Manual Sync - Verified Cron/GHL trigger received.")
     
-    # 2. Check for a valid Admin JWT session (War Room manual trigger)
+    # 2. Check for a valid Admin JWT session
     else:
         auth_header = request.headers.get("Authorization")
         if auth_header and auth_header.startswith("Bearer "):
@@ -131,17 +156,20 @@ def trigger_sync(request: Request, db: Session = Depends(get_db)):
                 logger.warning(f"Oracle - Manual Sync - JWT verification failed: {e}")
 
     if not is_authorized:
-        logger.warning(f"Unauthorized sync attempt from IP: {request.client.host}")
+        logger.warning(f"Unauthorized sync attempt blocked from IP: {request.client.host}")
         raise HTTPException(status_code=403, detail="Administrative Clearance Required.")
         
     global SYNC_IN_PROGRESS
     if SYNC_IN_PROGRESS:
+        logger.warning("Oracle - Manual Sync - Trigger rejected: Sync already in progress.")
         raise HTTPException(status_code=409, detail="A synchronization protocol is already active. Please wait for termination.")
 
     logger.info("Oracle - Manual Sync - Spawning background thread.")
+    import threading
     thread = threading.Thread(target=run_sync_task)
     thread.start()
     return {"status": "Sync triggered in background"}
+
 
 
 

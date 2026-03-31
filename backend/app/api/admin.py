@@ -21,7 +21,8 @@ def get_current_admin_user(current_user: User = Depends(get_current_user)):
     return current_user
 
 @router.get("/stats")
-def get_admin_stats(db: Session = Depends(get_db), current_admin: User = Depends(get_current_admin_user)):
+def get_admin_stats(db: Session = Depends(get_db)
+    logger.info("Oracle - Admin API - Fetching Global Pulse metrics..."), current_admin: User = Depends(get_current_admin_user)):
     """
     JMc - [2026-03-28] - The War Room Global Pulse.
     """
@@ -62,7 +63,8 @@ def get_admin_stats(db: Session = Depends(get_db), current_admin: User = Depends
     }
 
 @router.get("/users")
-def get_users(skip: int = 0, limit: int = 50, db: Session = Depends(get_db), current_admin: User = Depends(get_current_admin_user)):
+def get_users(skip: int = 0, limit: int = 50, db: Session = Depends(get_db)
+    logger.info("Oracle - Admin API - Fetching Syndicate Ledger..."), current_admin: User = Depends(get_current_admin_user)):
     """
     JMc - [2026-03-28] - Fetches the user ledger for manual review.
     """
@@ -99,7 +101,8 @@ def update_user_tier(user_id: int, payload: dict, db: Session = Depends(get_db),
     return {"status": "success", "user": user.email, "new_tier": user.tier}
 
 @router.get("/logs")
-def get_sync_logs(limit: int = 20, db: Session = Depends(get_db), current_admin: User = Depends(get_current_admin_user)):
+def get_sync_logs(limit: int = 20, db: Session = Depends(get_db)
+    logger.info("Oracle - Admin API - Fetching Sync History audit trail..."), current_admin: User = Depends(get_current_admin_user)):
     """
     JMc - [2026-03-28] - Returns the audit trail for the last N sync operations.
     """
