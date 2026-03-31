@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 from app.core.database import get_db
-from app.core.models import User, DrawRecord
+from app.core.models import User, DrawRecord, SyncLog
 from app.core.config import GAMES
 from app.core.security import get_current_user
 from datetime import datetime, timedelta
@@ -97,3 +97,11 @@ def update_user_tier(user_id: int, payload: dict, db: Session = Depends(get_db),
     db.commit()
     logger.info(f"Admin {current_admin.email} manually updated {user.email} to tier {new_tier}.")
     return {"status": "success", "user": user.email, "new_tier": user.tier}
+
+@router.get("/logs")
+def get_sync_logs(limit: int = 20, db: Session = Depends(get_db), current_admin: User = Depends(get_current_admin_user)):
+    """
+    JMc - [2026-03-28] - Returns the audit trail for the last N sync operations.
+    """
+    logs = db.query(SyncLog).order_by(SyncLog.executed_at.desc()).limit(limit).all()
+    return logs

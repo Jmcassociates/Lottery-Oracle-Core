@@ -63,18 +63,16 @@ class SavedTicketBatch(Base):
     owner = relationship("User", back_populates="ticket_batches")
     tickets = relationship("SavedTicket", back_populates="batch", cascade="all, delete-orphan")
 
-class SavedTicket(Base):
+class SyncLog(Base):
     """
-    JMc - Individual tickets linked to a generation batch.
+    JMc - [2026-03-28] - Persistent audit trail for automated and manual sync operations.
     """
-    __tablename__ = "saved_tickets"
+    __tablename__ = "sync_logs"
 
     id = Column(Integer, primary_key=True, index=True)
-    batch_id = Column(Integer, ForeignKey("saved_ticket_batches.id"), nullable=False)
-    
-    # The actual ticket generated
-    ticket_white_balls = Column(String, nullable=False)
-    ticket_special_ball = Column(Integer, nullable=True)
-
-    batch = relationship("SavedTicketBatch", back_populates="tickets")
+    game_name = Column(String, index=True, nullable=False)
+    status = Column(String, nullable=False) # 'SUCCESS', 'FAILED', 'UP_TO_DATE'
+    new_records = Column(Integer, default=0)
+    error_message = Column(String, nullable=True)
+    executed_at = Column(DateTime(timezone=True), server_default=func.now())
 

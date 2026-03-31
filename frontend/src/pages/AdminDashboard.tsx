@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { fetchWithAuth, isAdmin, logout } from '../utils/auth';
 import { useNavigate } from 'react-router-dom';
 
@@ -22,12 +22,24 @@ interface UserRecord {
   created_at: string;
 }
 
+interface SyncLog {
+  id: number;
+  game_name: string;
+  status: string;
+  new_records: number;
+  error_message: string | null;
+  executed_at: string;
+}
+
 const AdminDashboard = () => {
   const navigate = useNavigate();
   const [stats, setStats] = useState<AdminStats | null>(null);
   const [users, setUsers] = useState<UserRecord[]>([]);
+  const [logs, setLogs] = useState<SyncLog[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isSyncing, setIsSyncing] = useState(false);
+  const pollInterval = useRef<number | null>(null);
 
   useEffect(() => {
     if (!isAdmin()) {
@@ -35,19 +47,23 @@ const AdminDashboard = () => {
       return;
     }
     fetchData();
+    return () => {
+      if (pollInterval.current) window.clearInterval(pollInterval.current);
+    };
   }, []);
 
   const fetchData = async () => {
     try {
-      setLoading(true);
-      const [statsRes, usersRes] = await Promise.all([
+      const [statsRes, usersRes, logsRes] = await Promise.all([
         fetchWithAuth('/api/admin/stats'),
-        fetchWithAuth('/api/admin/users')
+        fetchWithAuth('/api/admin/users'),
+        fetchWithAuth('/api/admin/logs')
       ]);
 
-      if (statsRes.ok && usersRes.ok) {
+      if (statsRes.ok && usersRes.ok && logsRes.ok) {
         setStats(await statsRes.json());
         setUsers(await usersRes.json());
+        setLogs(await logsRes.json());
       } else {
         setError("Technician clearance rejected by API.");
       }
@@ -55,6 +71,44 @@ const AdminDashboard = () => {
       setError("Communication failure with the Vault.");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const startPolling = () => {
+    if (pollInterval.current) return;
+    setIsSyncing(true);
+    pollInterval.current = window.setInterval(() => {
+      fetchData();
+    }, 5000); // Poll every 5 seconds
+
+    // Stop polling after 2 minutes to save resources
+    setTimeout(() => {
+      stopPolling();
+    }, 120000);
+  };
+
+  const stopPolling = () => {
+    if (pollInterval.current) {
+      window.clearInterval(pollInterval.current);
+      pollInterval.current = null;
+    }
+    setIsSyncing(false);
+  };
+
+  const triggerSync = async () => {
+    if (!window.confirm("Initialize Global Re-sync Protocol? This will consume heavy CPU resources.")) return;
+    
+    try {
+      // JMc - [2026-03-18] - This hits the endpoint secured by GHL_WEBHOOK_SECRET
+      // In a real environment, we'd pass the token in headers here.
+      // For this admin dash, we rely on existing admin session auth.
+      const res = await fetchWithAuth('/api/admin/sync', { method: 'POST' });
+      if (res.ok) {
+        alert("Sync Protocol Started. Monitoring pulse...");
+        startPolling();
+      }
+    } catch (e) {
+      alert("Manual override failed.");
     }
   };
 
@@ -74,7 +128,7 @@ const AdminDashboard = () => {
     }
   };
 
-  if (loading && !stats) return <div className="admin-loading">INITIALIZING WAR ROOM...</div>;
+  if (loading && !stats) return <div className="admin-loading" style={{ color: '#38bdf8', padding: '50px', textAlign: 'center', fontFamily: 'monospace' }}>INITIALIZING WAR ROOM...</div>;
 
   return (
     <div className="admin-layout" style={{ backgroundColor: '#020617', minHeight: '100vh', color: '#f8fafc', fontFamily: 'Inter, sans-serif', padding: '40px' }}>
@@ -84,7 +138,8 @@ const AdminDashboard = () => {
           <p style={{ margin: '5px 0 0 0', color: '#94a3b8', fontSize: '14px' }}>Administrative Pulse & Syndicate Control</p>
         </div>
         <div style={{ display: 'flex', gap: '20px' }}>
-          <button onClick={() => navigate('/dashboard')} style={{ background: 'transparent', border: '1px solid #334155', color: '#cbd5e1', padding: '8px 16px', borderRadius: '4px', cursor: 'pointer' }}>Exit to Dashboard</button>
+          <button onClick={fetchData} style={{ background: 'transparent', border: '1px solid #38bdf8', color: '#38bdf8', padding: '8px 16px', borderRadius: '4px', cursor: 'pointer' }}>Refresh Logic</button>
+          <button onClick={() => navigate('/dashboard')} style={{ background: 'transparent', border: '1px solid #334155', color: '#cbd5e1', padding: '8px 16px', borderRadius: '4px', cursor: 'pointer' }}>Exit to Terminal</button>
           <button onClick={logout} style={{ background: '#ef4444', border: 'none', color: '#ffffff', padding: '8px 16px', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold' }}>Terminate Session</button>
         </div>
       </header>
@@ -110,7 +165,7 @@ const AdminDashboard = () => {
         </div>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '30px' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '30px', marginBottom: '40px' }}>
         {/* User Ledger */}
         <div style={{ background: '#0f172a', border: '1px solid #1e293b', borderRadius: '12px', padding: '25px' }}>
           <h3 style={{ margin: '0 0 20px 0', fontSize: '18px', color: '#ffffff' }}>Syndicate Ledger</h3>
@@ -173,11 +228,64 @@ const AdminDashboard = () => {
             ))}
           </div>
           <button 
-            onClick={() => alert("Global Re-sync Protocol initiated.")}
-            style={{ width: '100%', marginTop: '30px', background: 'transparent', border: '1px solid #38bdf8', color: '#38bdf8', padding: '12px', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold' }}
+            onClick={triggerSync}
+            disabled={isSyncing}
+            style={{ 
+                width: '100%', 
+                marginTop: '30px', 
+                background: isSyncing ? '#1e293b' : 'transparent', 
+                border: `1px solid ${isSyncing ? '#334155' : '#38bdf8'}`, 
+                color: isSyncing ? '#94a3b8' : '#38bdf8', 
+                padding: '12px', 
+                borderRadius: '6px', 
+                cursor: isSyncing ? 'not-allowed' : 'pointer', 
+                fontWeight: 'bold' 
+            }}
           >
-            FORCE MANUAL RE-SYNC
+            {isSyncing ? "SYNC PROTOCOL IN PROGRESS..." : "FORCE GLOBAL RE-SYNC"}
           </button>
+        </div>
+      </div>
+
+      {/* Recent Activity Log */}
+      <div style={{ background: '#0f172a', border: '1px solid #1e293b', borderRadius: '12px', padding: '25px' }}>
+        <h3 style={{ margin: '0 0 20px 0', fontSize: '18px', color: '#ffffff' }}>Recent Sync Activity</h3>
+        <div style={{ maxHeight: '300px', overflowY: 'auto' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+            <thead style={{ position: 'sticky', top: 0, background: '#0f172a' }}>
+              <tr style={{ borderBottom: '1px solid #1e293b', textAlign: 'left' }}>
+                <th style={{ padding: '12px 8px', color: '#94a3b8', fontSize: '12px' }}>Timestamp</th>
+                <th style={{ padding: '12px 8px', color: '#94a3b8', fontSize: '12px' }}>Game</th>
+                <th style={{ padding: '12px 8px', color: '#94a3b8', fontSize: '12px' }}>Status</th>
+                <th style={{ padding: '12px 8px', color: '#94a3b8', fontSize: '12px' }}>Result</th>
+              </tr>
+            </thead>
+            <tbody>
+              {logs.map(log => (
+                <tr key={log.id} style={{ borderBottom: '1px solid #020617' }}>
+                  <td style={{ padding: '10px 8px', fontSize: '12px', fontFamily: 'monospace', color: '#64748b' }}>
+                    {new Date(log.executed_at).toLocaleString()}
+                  </td>
+                  <td style={{ padding: '10px 8px', fontSize: '13px', fontWeight: 'bold' }}>{log.game_name}</td>
+                  <td style={{ padding: '10px 8px' }}>
+                    <span style={{ 
+                      fontSize: '10px', 
+                      textTransform: 'uppercase', 
+                      padding: '2px 6px', 
+                      borderRadius: '3px',
+                      background: log.status === 'SUCCESS' ? '#064e3b' : log.status === 'FAILED' ? '#450a0a' : '#1e293b',
+                      color: log.status === 'SUCCESS' ? '#10b981' : log.status === 'FAILED' ? '#ef4444' : '#94a3b8'
+                    }}>
+                      {log.status}
+                    </span>
+                  </td>
+                  <td style={{ padding: '10px 8px', fontSize: '12px', color: log.status === 'FAILED' ? '#fca5a5' : '#cbd5e1' }}>
+                    {log.status === 'FAILED' ? log.error_message : `+${log.new_records} records`}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       </div>
     </div>

@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session
 from datetime import datetime, timedelta, timezone
 
 from app.core.database import engine, Base, get_db
-from app.core.models import DrawRecord, SavedTicketBatch, SavedTicket, User
+from app.core.models import DrawRecord, SavedTicketBatch, SavedTicket, User, SyncLog
 from app.core.security import get_current_user, create_access_token, ACCESS_TOKEN_EXPIRE_MINUTES
 from app.core.config import GAMES
 from app.services.engine import LotteryMathEngine
