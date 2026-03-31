@@ -47,6 +47,20 @@ const AdminDashboard = () => {
       return;
     }
     fetchData();
+    
+    // Initial poll for background sync status
+    const checkSyncStatus = async () => {
+        try {
+            const res = await fetchWithAuth('/api/admin/logs?limit=14');
+            if (res.ok) {
+                const latestLogs: SyncLog[] = await res.json();
+                const stillImporting = latestLogs.some(l => l.status === 'IMPORTING');
+                if (stillImporting) startPolling();
+            }
+        } catch (e) { /* silent fail on initial check */ }
+    };
+    checkSyncStatus();
+
     return () => {
       if (pollInterval.current) window.clearInterval(pollInterval.current);
     };
@@ -57,13 +71,21 @@ const AdminDashboard = () => {
       const [statsRes, usersRes, logsRes] = await Promise.all([
         fetchWithAuth('/api/admin/stats'),
         fetchWithAuth('/api/admin/users'),
-        fetchWithAuth('/api/admin/logs')
+        fetchWithAuth('/api/admin/logs?limit=30')
       ]);
 
       if (statsRes.ok && usersRes.ok && logsRes.ok) {
-        setStats(await statsRes.json());
+        const statsData = await statsRes.json();
+        const logsData = await logsRes.json();
+        setStats(statsData);
         setUsers(await usersRes.json());
-        setLogs(await logsRes.json());
+        setLogs(logsData);
+
+        // Auto-stop polling if nothing is importing anymore
+        const stillImporting = logsData.some((l: SyncLog) => l.status === 'IMPORTING');
+        if (!stillImporting && isSyncing) {
+            stopPolling();
+        }
       } else {
         setError("Technician clearance rejected by API.");
       }
@@ -79,12 +101,7 @@ const AdminDashboard = () => {
     setIsSyncing(true);
     pollInterval.current = window.setInterval(() => {
       fetchData();
-    }, 4000); // Poll every 4 seconds
-
-    // Stop polling after 5 minutes
-    setTimeout(() => {
-      stopPolling();
-    }, 300000);
+    }, 3000); // High velocity polling (3s) during sync
   };
 
   const stopPolling = () => {
@@ -101,16 +118,13 @@ const AdminDashboard = () => {
     try {
       const res = await fetchWithAuth('/api/admin/sync', { method: 'POST' });
       if (res.ok) {
-        alert("Sync Protocol Started. Monitoring pulse...");
         startPolling();
       } else if (res.status === 409) {
-        alert("COMMAND REJECTED: A synchronization protocol is already active. Please wait for termination.");
-        startPolling(); // Join the existing polling loop
-      } else {
-        alert("Manual override failed. Check system logs.");
+        alert("PROTOCOL ACTIVE: A synchronization is already in progress.");
+        startPolling();
       }
     } catch (e) {
-      alert("Communication error during trigger.");
+      alert("Manual override failed.");
     }
   };
 
@@ -130,7 +144,7 @@ const AdminDashboard = () => {
     }
   };
 
-  if (loading && !stats) return <div className="admin-loading" style={{ color: '#38bdf8', padding: '50px', textAlign: 'center', fontFamily: 'monospace' }}>INITIALIZING WAR ROOM...</div>;
+  if (loading && !stats) return <div style={{ color: '#38bdf8', padding: '50px', textAlign: 'center', fontFamily: 'monospace' }}>INITIALIZING WAR ROOM...</div>;
 
   return (
     <div className="admin-layout" style={{ backgroundColor: '#020617', minHeight: '100vh', color: '#f8fafc', fontFamily: 'Inter, sans-serif', padding: '40px' }}>
@@ -140,13 +154,7 @@ const AdminDashboard = () => {
           <p style={{ margin: '5px 0 0 0', color: '#94a3b8', fontSize: '14px' }}>Administrative Pulse & Syndicate Control</p>
         </div>
         <div style={{ display: 'flex', gap: '20px' }}>
-          <button 
-            onClick={fetchData} 
-            title="Re-query the Vault for latest syndicate metrics and sync timestamps."
-            style={{ background: 'transparent', border: '1px solid #38bdf8', color: '#38bdf8', padding: '8px 16px', borderRadius: '4px', cursor: 'pointer' }}
-          >
-            Refresh Logic
-          </button>
+          <button onClick={fetchData} style={{ background: 'transparent', border: '1px solid #38bdf8', color: '#38bdf8', padding: '8px 16px', borderRadius: '4px', cursor: 'pointer' }}>Refresh Logic</button>
           <button onClick={() => navigate('/dashboard')} style={{ background: 'transparent', border: '1px solid #334155', color: '#cbd5e1', padding: '8px 16px', borderRadius: '4px', cursor: 'pointer' }}>Exit to Terminal</button>
           <button onClick={logout} style={{ background: '#ef4444', border: 'none', color: '#ffffff', padding: '8px 16px', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold' }}>Terminate Session</button>
         </div>
@@ -174,7 +182,6 @@ const AdminDashboard = () => {
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '30px', marginBottom: '40px' }}>
-        {/* User Ledger */}
         <div style={{ background: '#0f172a', border: '1px solid #1e293b', borderRadius: '12px', padding: '25px' }}>
           <h3 style={{ margin: '0 0 20px 0', fontSize: '18px', color: '#ffffff' }}>Syndicate Ledger</h3>
           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
@@ -194,26 +201,12 @@ const AdminDashboard = () => {
                     {user.is_admin && <span style={{ marginLeft: '8px', fontSize: '10px', background: '#38bdf8', color: '#0f172a', padding: '2px 4px', borderRadius: '3px', fontWeight: 'bold' }}>ADMIN</span>}
                   </td>
                   <td style={{ padding: '12px 8px' }}>
-                    <span style={{ 
-                      fontSize: '11px', 
-                      textTransform: 'uppercase', 
-                      padding: '4px 8px', 
-                      borderRadius: '4px',
-                      background: user.tier === 'pro' ? '#064e3b' : '#1e293b',
-                      color: user.tier === 'pro' ? '#10b981' : '#94a3b8'
-                    }}>
-                      {user.tier}
-                    </span>
+                    <span style={{ fontSize: '11px', textTransform: 'uppercase', padding: '4px 8px', borderRadius: '4px', background: user.tier === 'pro' ? '#064e3b' : '#1e293b', color: user.tier === 'pro' ? '#10b981' : '#94a3b8' }}>{user.tier}</span>
                   </td>
-                  <td style={{ padding: '12px 8px', fontSize: '13px', color: '#64748b' }}>
-                    {new Date(user.created_at).toLocaleDateString()}
-                  </td>
+                  <td style={{ padding: '12px 8px', fontSize: '13px', color: '#64748b' }}>{new Date(user.created_at).toLocaleDateString()}</td>
                   <td style={{ padding: '12px 8px', textAlign: 'right' }}>
                     {!user.is_admin && (
-                      <button 
-                        onClick={() => toggleTier(user.id, user.tier)}
-                        style={{ background: 'transparent', border: '1px solid #334155', color: '#cbd5e1', fontSize: '12px', padding: '4px 8px', cursor: 'pointer', borderRadius: '4px' }}
-                      >
+                      <button onClick={() => toggleTier(user.id, user.tier)} style={{ background: 'transparent', border: '1px solid #334155', color: '#cbd5e1', fontSize: '12px', padding: '4px 8px', cursor: 'pointer', borderRadius: '4px' }}>
                         {user.tier === 'pro' ? 'Downgrade' : 'Upgrade to Pro'}
                       </button>
                     )}
@@ -224,22 +217,17 @@ const AdminDashboard = () => {
           </table>
         </div>
 
-        {/* Sync Health */}
         <div style={{ background: '#0f172a', border: '1px solid #1e293b', borderRadius: '12px', padding: '25px' }}>
           <h3 style={{ margin: '0 0 20px 0', fontSize: '18px', color: '#ffffff' }}>Engine Sync Health</h3>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
             {stats && Object.entries(stats.sync_health).map(([game, data]) => {
-                // JMc - [2026-03-28] - Find if there is an in-progress log for this game
                 const inProgress = logs.find(l => l.game_name === game && l.status === 'IMPORTING');
                 const statusColor = inProgress ? '#f59e0b' : (data.status === 'Up to date' ? '#10b981' : '#ef4444');
                 const statusText = inProgress ? 'IMPORTING...' : data.status;
-
                 return (
                     <div key={game} style={{ borderLeft: `3px solid ${statusColor}`, paddingLeft: '15px' }}>
                         <div style={{ fontSize: '14px', fontWeight: 'bold' }}>{game.replace('_', ' ')}</div>
-                        <div style={{ fontSize: '12px', color: statusColor, fontWeight: inProgress ? 'bold' : 'normal' }}>
-                            {statusText}
-                        </div>
+                        <div style={{ fontSize: '12px', color: statusColor, fontWeight: inProgress ? 'bold' : 'normal' }}>{statusText}</div>
                         <div style={{ fontSize: '11px', color: '#64748b' }}>Last Draw: {data.last_sync}</div>
                     </div>
                 );
@@ -248,24 +236,13 @@ const AdminDashboard = () => {
           <button 
             onClick={triggerSync}
             disabled={isSyncing}
-            style={{ 
-                width: '100%', 
-                marginTop: '30px', 
-                background: isSyncing ? '#1e293b' : 'transparent', 
-                border: `1px solid ${isSyncing ? '#334155' : '#38bdf8'}`, 
-                color: isSyncing ? '#94a3b8' : '#38bdf8', 
-                padding: '12px', 
-                borderRadius: '6px', 
-                cursor: isSyncing ? 'not-allowed' : 'pointer', 
-                fontWeight: 'bold' 
-            }}
+            style={{ width: '100%', marginTop: '30px', background: isSyncing ? '#1e293b' : 'transparent', border: `1px solid ${isSyncing ? '#334155' : '#38bdf8'}`, color: isSyncing ? '#94a3b8' : '#38bdf8', padding: '12px', borderRadius: '6px', cursor: isSyncing ? 'not-allowed' : 'pointer', fontWeight: 'bold' }}
           >
             {isSyncing ? "SYNC PROTOCOL ACTIVE..." : "FORCE GLOBAL RE-SYNC"}
           </button>
         </div>
       </div>
 
-      {/* Recent Activity Log */}
       <div style={{ background: '#0f172a', border: '1px solid #1e293b', borderRadius: '12px', padding: '25px' }}>
         <h3 style={{ margin: '0 0 20px 0', fontSize: '18px', color: '#ffffff' }}>Recent Sync Activity</h3>
         <div style={{ maxHeight: '400px', overflowY: 'auto' }}>
@@ -281,25 +258,12 @@ const AdminDashboard = () => {
             <tbody>
               {logs.map(log => (
                 <tr key={log.id} style={{ borderBottom: '1px solid #020617' }}>
-                  <td style={{ padding: '10px 8px', fontSize: '12px', fontFamily: 'monospace', color: '#64748b' }}>
-                    {new Date(log.executed_at).toLocaleString()}
-                  </td>
+                  <td style={{ padding: '10px 8px', fontSize: '12px', fontFamily: 'monospace', color: '#64748b' }}>{new Date(log.executed_at).toLocaleString()}</td>
                   <td style={{ padding: '10px 8px', fontSize: '13px', fontWeight: 'bold' }}>{log.game_name}</td>
                   <td style={{ padding: '10px 8px' }}>
-                    <span style={{ 
-                      fontSize: '10px', 
-                      textTransform: 'uppercase', 
-                      padding: '2px 6px', 
-                      borderRadius: '3px',
-                      background: log.status === 'SUCCESS' ? '#064e3b' : log.status === 'FAILED' ? '#450a0a' : (log.status === 'IMPORTING' ? '#78350f' : '#1e293b'),
-                      color: log.status === 'SUCCESS' ? '#10b981' : log.status === 'FAILED' ? '#ef4444' : (log.status === 'IMPORTING' ? '#f59e0b' : '#94a3b8')
-                    }}>
-                      {log.status}
-                    </span>
+                    <span style={{ fontSize: '10px', textTransform: 'uppercase', padding: '2px 6px', borderRadius: '3px', background: log.status === 'SUCCESS' ? '#064e3b' : log.status === 'FAILED' ? '#450a0a' : (log.status === 'IMPORTING' ? '#78350f' : '#1e293b'), color: log.status === 'SUCCESS' ? '#10b981' : log.status === 'FAILED' ? '#ef4444' : (log.status === 'IMPORTING' ? '#f59e0b' : '#94a3b8') }}>{log.status}</span>
                   </td>
-                  <td style={{ padding: '10px 8px', fontSize: '12px', color: log.status === 'FAILED' ? '#fca5a5' : '#cbd5e1' }}>
-                    {log.status === 'FAILED' ? log.error_message : (log.status === 'IMPORTING' ? 'Processing data stream...' : `+${log.new_records} records`)}
-                  </td>
+                  <td style={{ padding: '10px 8px', fontSize: '12px', color: log.status === 'FAILED' ? '#fca5a5' : '#cbd5e1' }}>{log.status === 'FAILED' ? log.error_message : (log.status === 'IMPORTING' ? 'Processing data stream...' : `+${log.new_records} records`)}</td>
                 </tr>
               ))}
             </tbody>

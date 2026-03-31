@@ -54,49 +54,49 @@ app.include_router(admin.router, prefix="/api/admin", tags=["admin"])
 def run_sync_task():
     global SYNC_IN_PROGRESS
     SYNC_IN_PROGRESS = True
-    logger.info("Oracle - Manual Sync - [PHASE 0] Starting background ingestion...")
+    logger.info("Oracle - Manual Sync - [PHASE 0] Initializing Background Protocol...")
     sync_results = {}
     db = next(get_db())
     
     try:
-        # JMc - [2026-03-28] - Migration Logic
-        logger.info("Oracle - Manual Sync - [PHASE 1] Executing schema migrations...")
+        # JMc - [2026-03-31] - Migration Phase
+        logger.info("Oracle - Manual Sync - [PHASE 1] Verification of Database Schema...")
         try:
             run_schema_migration()
             run_nat_migration()
-            logger.info("Oracle - Manual Sync - [PHASE 1] Migrations complete.")
+            logger.info("Oracle - Manual Sync - [PHASE 1] Schema Alignment Confirmed.")
         except Exception as mig_err:
-            logger.error(f"Oracle - Manual Sync - [PHASE 1] Migration Error: {mig_err}")
-            # We continue anyway, maybe it already exists.
+            logger.error(f"Oracle - Manual Sync - [PHASE 1] Schema Alignment FAILED: {mig_err}")
 
         for game_name, config in GAMES.items():
-            logger.info(f"Oracle - Manual Sync - [PHASE 2] Processing {game_name}...")
+            logger.info(f"Oracle - Manual Sync - [PHASE 2] Initializing Stream for {game_name}...")
             
-            # Initial Status Entry
+            # Record start of attempt
             log_entry = SyncLog(game_name=game_name, status="IMPORTING", new_records=0)
             db.add(log_entry)
             db.commit()
             
             try:
                 fetcher = config["fetcher"]()
+                logger.info(f"Oracle - Manual Sync - [PHASE 2] Connecting to {game_name} API...")
                 new_count = fetcher.sync_to_db(db)
                 
                 log_entry.status = "SUCCESS" if new_count > 0 else "UP_TO_DATE"
                 log_entry.new_records = new_count
                 sync_results[game_name] = f"Added {new_count} new draws." if new_count > 0 else "Up to date."
-                logger.info(f"Oracle - Manual Sync - [PHASE 2] {game_name} completed: {sync_results[game_name]}")
+                logger.info(f"Oracle - Manual Sync - [PHASE 2] {game_name} ingestion successful (+{new_count}).")
                 
             except Exception as e:
-                error_str = str(e)[:250]
-                logger.error(f"Oracle - Manual Sync - [PHASE 2] Sync Failure - {game_name}: {e}")
-                sync_results[game_name] = f"FAILED: {error_str[:50]}..."
+                error_str = f"Ingestion Failure: {str(e)}"
+                logger.error(f"Oracle - Manual Sync - [PHASE 2] {game_name} CRITICAL FAILURE: {e}")
+                sync_results[game_name] = f"FAILED: {str(e)[:50]}"
                 log_entry.status = "FAILED"
                 log_entry.error_message = error_str
             
             db.commit()
 
-        # Collect Stats for Pulse Report
-        logger.info("Oracle - Manual Sync - [PHASE 3] Collecting syndicate statistics...")
+        # Collect Final Metrics
+        logger.info("Oracle - Manual Sync - [PHASE 3] Calculating Syndicate Pulse Metrics...")
         user_total = db.query(User).count()
         user_pro = db.query(User).filter(User.tier == "pro").count()
         total_records = db.query(DrawRecord).count()
@@ -111,10 +111,10 @@ def run_sync_task():
         
         admin_email = os.getenv("ADMIN_EMAIL", "james@moderncyph3r.com")
         EmailService.send_admin_report(admin_email, report_data)
-        logger.info("Oracle - Manual Sync - [PHASE 4] Pulse report dispatched. Protocol terminating.")
+        logger.info("Oracle - Manual Sync - [PHASE 4] Executive Briefing dispatched. Protocol terminated.")
 
     except Exception as global_err:
-        logger.error(f"Oracle - Manual Sync - Global Failure during background sync: {global_err}")
+        logger.error(f"Oracle - Manual Sync - [PHASE 99] GLOBAL PROTOCOL FAILURE: {global_err}")
     finally:
         SYNC_IN_PROGRESS = False
         db.close()
