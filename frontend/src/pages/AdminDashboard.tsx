@@ -64,14 +64,18 @@ const AdminDashboard = () => {
 
       if (statsRes.ok && usersRes.ok && logsRes.ok) {
         const statsData: AdminStats = await statsRes.json();
+        const logsData: SyncLog[] = await logsRes.json();
+        
         setStats(statsData);
         setUsers(await usersRes.json());
-        setLogs(await logsRes.json());
+        setLogs(logsData);
 
-        // JMc - [2026-03-31] - Source of Truth: Check the actual backend sync lock
+        // JMc - [2026-03-31] - Source of Truth: Check the actual DB-backed backend sync lock
         if (statsData.sync_active) {
+            setIsSyncing(true);
             if (!pollInterval.current) startPolling();
         } else {
+            setIsSyncing(false);
             if (pollInterval.current) stopPolling();
         }
       } else {
@@ -86,10 +90,14 @@ const AdminDashboard = () => {
 
   const startPolling = () => {
     if (pollInterval.current) return;
-    setIsSyncing(true);
     pollInterval.current = window.setInterval(() => {
       fetchData();
-    }, 3000); // High velocity polling (3s) during sync
+    }, 4000); // 4s polling for high fidelity feedback
+
+    // Emergency cutoff after 15 minutes to prevent tab death
+    setTimeout(() => {
+      stopPolling();
+    }, 900000);
   };
 
   const stopPolling = () => {
@@ -97,22 +105,26 @@ const AdminDashboard = () => {
       window.clearInterval(pollInterval.current);
       pollInterval.current = null;
     }
-    setIsSyncing(false);
   };
 
   const triggerSync = async () => {
     if (!window.confirm("Initialize Global Re-sync Protocol? This will consume heavy CPU resources.")) return;
     
     try {
+      setIsSyncing(true); // Immediate feedback
       const res = await fetchWithAuth('/api/admin/sync', { method: 'POST' });
       if (res.ok) {
         startPolling();
       } else if (res.status === 409) {
         alert("PROTOCOL ACTIVE: A synchronization is already in progress.");
         startPolling();
+      } else {
+        setIsSyncing(false);
+        alert("Manual override failed. Check system logs.");
       }
     } catch (e) {
-      alert("Manual override failed.");
+      setIsSyncing(false);
+      alert("Communication error during trigger.");
     }
   };
 
