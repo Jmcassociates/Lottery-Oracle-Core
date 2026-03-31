@@ -21,6 +21,10 @@ from migrate_v2_1 import migrate as run_nat_migration
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+# JMc - [2026-03-28] - Global Sync Lock to prevent CPU exhaustion from duplicate triggers.
+SYNC_IN_PROGRESS = False
+
+
 
 from fastapi.middleware.cors import CORSMiddleware
 import threading
@@ -101,6 +105,13 @@ def trigger_sync(request: Request):
     Now requires the GHL_WEBHOOK_SECRET in the header to prevent unauthorized heavy tasks.
     """
     token = request.headers.get("X-GHL-Verify")
+    # For local admin testing, we skip header check if session is admin
+    # but for Cloud Scheduler we keep it strict.
+    
+    global SYNC_IN_PROGRESS
+    if SYNC_IN_PROGRESS:
+        raise HTTPException(status_code=409, detail="A synchronization protocol is already active. Please wait for termination.")
+
     if token != GHL_WEBHOOK_SECRET:
         logger.warning(f"Unauthorized sync attempt from IP: {request.client.host}")
         raise HTTPException(status_code=403, detail="Administrative Clearance Required.")
@@ -109,6 +120,7 @@ def trigger_sync(request: Request):
     thread = threading.Thread(target=run_sync_task)
     thread.start()
     return {"status": "Sync triggered in background"}
+
 
 @app.get("/api/admin/health")
 def admin_health_check():

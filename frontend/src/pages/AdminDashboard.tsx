@@ -79,12 +79,12 @@ const AdminDashboard = () => {
     setIsSyncing(true);
     pollInterval.current = window.setInterval(() => {
       fetchData();
-    }, 5000); // Poll every 5 seconds
+    }, 4000); // Poll every 4 seconds
 
-    // Stop polling after 2 minutes to save resources
+    // Stop polling after 5 minutes
     setTimeout(() => {
       stopPolling();
-    }, 120000);
+    }, 300000);
   };
 
   const stopPolling = () => {
@@ -99,16 +99,18 @@ const AdminDashboard = () => {
     if (!window.confirm("Initialize Global Re-sync Protocol? This will consume heavy CPU resources.")) return;
     
     try {
-      // JMc - [2026-03-18] - This hits the endpoint secured by GHL_WEBHOOK_SECRET
-      // In a real environment, we'd pass the token in headers here.
-      // For this admin dash, we rely on existing admin session auth.
       const res = await fetchWithAuth('/api/admin/sync', { method: 'POST' });
       if (res.ok) {
         alert("Sync Protocol Started. Monitoring pulse...");
         startPolling();
+      } else if (res.status === 409) {
+        alert("COMMAND REJECTED: A synchronization protocol is already active. Please wait for termination.");
+        startPolling(); // Join the existing polling loop
+      } else {
+        alert("Manual override failed. Check system logs.");
       }
     } catch (e) {
-      alert("Manual override failed.");
+      alert("Communication error during trigger.");
     }
   };
 
@@ -138,7 +140,13 @@ const AdminDashboard = () => {
           <p style={{ margin: '5px 0 0 0', color: '#94a3b8', fontSize: '14px' }}>Administrative Pulse & Syndicate Control</p>
         </div>
         <div style={{ display: 'flex', gap: '20px' }}>
-          <button onClick={fetchData} style={{ background: 'transparent', border: '1px solid #38bdf8', color: '#38bdf8', padding: '8px 16px', borderRadius: '4px', cursor: 'pointer' }}>Refresh Logic</button>
+          <button 
+            onClick={fetchData} 
+            title="Re-query the Vault for latest syndicate metrics and sync timestamps."
+            style={{ background: 'transparent', border: '1px solid #38bdf8', color: '#38bdf8', padding: '8px 16px', borderRadius: '4px', cursor: 'pointer' }}
+          >
+            Refresh Logic
+          </button>
           <button onClick={() => navigate('/dashboard')} style={{ background: 'transparent', border: '1px solid #334155', color: '#cbd5e1', padding: '8px 16px', borderRadius: '4px', cursor: 'pointer' }}>Exit to Terminal</button>
           <button onClick={logout} style={{ background: '#ef4444', border: 'none', color: '#ffffff', padding: '8px 16px', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold' }}>Terminate Session</button>
         </div>
@@ -220,12 +228,22 @@ const AdminDashboard = () => {
         <div style={{ background: '#0f172a', border: '1px solid #1e293b', borderRadius: '12px', padding: '25px' }}>
           <h3 style={{ margin: '0 0 20px 0', fontSize: '18px', color: '#ffffff' }}>Engine Sync Health</h3>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
-            {stats && Object.entries(stats.sync_health).map(([game, data]) => (
-              <div key={game} style={{ borderLeft: `3px solid ${data.status === 'Up to date' ? '#10b981' : '#ef4444'}`, paddingLeft: '15px' }}>
-                <div style={{ fontSize: '14px', fontWeight: 'bold' }}>{game.replace('_', ' ')}</div>
-                <div style={{ fontSize: '12px', color: '#94a3b8' }}>Last Sync: {data.last_sync}</div>
-              </div>
-            ))}
+            {stats && Object.entries(stats.sync_health).map(([game, data]) => {
+                // JMc - [2026-03-28] - Find if there is an in-progress log for this game
+                const inProgress = logs.find(l => l.game_name === game && l.status === 'IMPORTING');
+                const statusColor = inProgress ? '#f59e0b' : (data.status === 'Up to date' ? '#10b981' : '#ef4444');
+                const statusText = inProgress ? 'IMPORTING...' : data.status;
+
+                return (
+                    <div key={game} style={{ borderLeft: `3px solid ${statusColor}`, paddingLeft: '15px' }}>
+                        <div style={{ fontSize: '14px', fontWeight: 'bold' }}>{game.replace('_', ' ')}</div>
+                        <div style={{ fontSize: '12px', color: statusColor, fontWeight: inProgress ? 'bold' : 'normal' }}>
+                            {statusText}
+                        </div>
+                        <div style={{ fontSize: '11px', color: '#64748b' }}>Last Draw: {data.last_sync}</div>
+                    </div>
+                );
+            })}
           </div>
           <button 
             onClick={triggerSync}
@@ -242,7 +260,7 @@ const AdminDashboard = () => {
                 fontWeight: 'bold' 
             }}
           >
-            {isSyncing ? "SYNC PROTOCOL IN PROGRESS..." : "FORCE GLOBAL RE-SYNC"}
+            {isSyncing ? "SYNC PROTOCOL ACTIVE..." : "FORCE GLOBAL RE-SYNC"}
           </button>
         </div>
       </div>
@@ -250,7 +268,7 @@ const AdminDashboard = () => {
       {/* Recent Activity Log */}
       <div style={{ background: '#0f172a', border: '1px solid #1e293b', borderRadius: '12px', padding: '25px' }}>
         <h3 style={{ margin: '0 0 20px 0', fontSize: '18px', color: '#ffffff' }}>Recent Sync Activity</h3>
-        <div style={{ maxHeight: '300px', overflowY: 'auto' }}>
+        <div style={{ maxHeight: '400px', overflowY: 'auto' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
             <thead style={{ position: 'sticky', top: 0, background: '#0f172a' }}>
               <tr style={{ borderBottom: '1px solid #1e293b', textAlign: 'left' }}>
@@ -273,14 +291,14 @@ const AdminDashboard = () => {
                       textTransform: 'uppercase', 
                       padding: '2px 6px', 
                       borderRadius: '3px',
-                      background: log.status === 'SUCCESS' ? '#064e3b' : log.status === 'FAILED' ? '#450a0a' : '#1e293b',
-                      color: log.status === 'SUCCESS' ? '#10b981' : log.status === 'FAILED' ? '#ef4444' : '#94a3b8'
+                      background: log.status === 'SUCCESS' ? '#064e3b' : log.status === 'FAILED' ? '#450a0a' : (log.status === 'IMPORTING' ? '#78350f' : '#1e293b'),
+                      color: log.status === 'SUCCESS' ? '#10b981' : log.status === 'FAILED' ? '#ef4444' : (log.status === 'IMPORTING' ? '#f59e0b' : '#94a3b8')
                     }}>
                       {log.status}
                     </span>
                   </td>
                   <td style={{ padding: '10px 8px', fontSize: '12px', color: log.status === 'FAILED' ? '#fca5a5' : '#cbd5e1' }}>
-                    {log.status === 'FAILED' ? log.error_message : `+${log.new_records} records`}
+                    {log.status === 'FAILED' ? log.error_message : (log.status === 'IMPORTING' ? 'Processing data stream...' : `+${log.new_records} records`)}
                   </td>
                 </tr>
               ))}
