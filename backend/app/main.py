@@ -31,12 +31,8 @@ import threading
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # JMc - [2026-03-28] - Auto-migration on boot to ensure War Room tables exist.
-    try:
-        from migrate_v2 import migrate
-        migrate()
-    except Exception as e:
-        logger.error(f"Oracle - Boot Failure - Migration failed: {e}")
+    # JMc - [2026-03-31] - Temporarily disabled boot-time migration due to DB connection exhaustion.
+    # Migration is still triggered inside run_sync_task().
     yield
 
 
