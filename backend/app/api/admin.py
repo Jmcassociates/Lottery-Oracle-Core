@@ -37,8 +37,8 @@ def get_admin_stats(db: Session = Depends(get_db), current_admin: User = Depends
     # Dynamic Sync Health tracking
     sync_health = {}
     for game_name, config in GAMES.items():
-        # Query the latest draw date for this specific game
-        latest_draw = db.query(DrawRecord.draw_date).filter(DrawRecord.game_name == game_name).order_by(DrawRecord.draw_date.desc()).first()
+        # Query the latest draw date for this specific game (handles Day/Night variants)
+        latest_draw = db.query(DrawRecord.draw_date).filter(DrawRecord.game_name.like(f"{game_name}%")).order_by(DrawRecord.draw_date.desc()).first()
         
         if latest_draw:
             # Check if sync is "stale" (older than 24h for daily games)
