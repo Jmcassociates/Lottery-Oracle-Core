@@ -2,7 +2,8 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 from app.core.database import get_db
-from app.core.models import User
+from app.core.models import User, DrawRecord
+from app.core.config import GAMES
 from app.core.security import get_current_user
 from datetime import datetime, timedelta
 import logging
@@ -32,6 +33,23 @@ def get_admin_stats(db: Session = Depends(get_db), current_admin: User = Depends
     yesterday = datetime.utcnow() - timedelta(days=1)
     new_users_24h = db.query(func.count(User.id)).filter(User.created_at >= yesterday).scalar()
 
+    # Dynamic Sync Health tracking
+    sync_health = {}
+    for game_name, config in GAMES.items():
+        # Query the latest draw date for this specific game
+        latest_draw = db.query(DrawRecord.draw_date).filter(DrawRecord.game_name == game_name).order_by(DrawRecord.draw_date.desc()).first()
+        
+        if latest_draw:
+            # Check if sync is "stale" (older than 24h for daily games)
+            # For simplicity, we just show the last date found.
+            last_date_str = latest_draw[0].strftime("%Y-%m-%d")
+            status = "Up to date"
+        else:
+            last_date_str = "No records"
+            status = "Needs Sync"
+            
+        sync_health[game_name] = {"status": status, "last_sync": last_date_str}
+
     return {
         "status": "online",
         "syndicate_metrics": {
@@ -40,13 +58,7 @@ def get_admin_stats(db: Session = Depends(get_db), current_admin: User = Depends
             "free_tier": free_users,
             "acquisition_24h": new_users_24h
         },
-        "sync_health": {
-            # Mocking the sync health for now until we wire it to the APScheduler logs
-            "VA_Cash5": {"status": "Up to date", "last_sync": "03:00 AM EST"},
-            "TX_Cash5": {"status": "Up to date", "last_sync": "03:00 AM EST"},
-            "NY_Lotto": {"status": "Up to date", "last_sync": "03:00 AM EST"},
-            "National": {"status": "Up to date", "last_sync": "03:00 AM EST"}
-        }
+        "sync_health": sync_health
     }
 
 @router.get("/users")
