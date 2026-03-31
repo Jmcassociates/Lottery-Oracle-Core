@@ -1,4 +1,5 @@
 import logging
+import os
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, Depends, HTTPException, Request
 from fastapi.responses import StreamingResponse
@@ -13,6 +14,7 @@ from app.services.engine import LotteryMathEngine
 from app.services.permutation_engine import PermutationMathEngine
 from app.services.scraper import JackpotScraper
 from app.services.exporter import PDFExporter
+from app.services.email import EmailService
 from app.api import auth, admin
 from app.api.auth import GHL_WEBHOOK_SECRET
 from migrate_v2 import migrate as run_schema_migration
