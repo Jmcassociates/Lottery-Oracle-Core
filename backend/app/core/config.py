@@ -1,7 +1,6 @@
 from app.services.fetchers import (
     VirginiaPowerballFetcher, 
     VirginiaMegaMillionsFetcher,
-    VirginiaCash4LifeFetcher,
     VirginiaCash5Fetcher,
     VirginiaPick5Fetcher,
     VirginiaPick4Fetcher,
@@ -68,32 +67,6 @@ GAMES = {
             (2, True): 10,
             (1, True): 4,
             (0, True): 2
-        }
-    },
-    "VirginiaCash4Life": {
-        "state": "VA",
-        "white_max": 60,
-        "special_max": 4,
-        "fetcher": VirginiaCash4LifeFetcher,
-        "scraper_config": {
-            "type": "fixed",
-            "jackpot": "$1,000/Day",
-            "next_draw": "Draws Daily 9:00 PM"
-        },
-        "scouter_config": {
-            "max_start_ball": 34,
-            "max_consecutive": 2
-        },
-        "prize_tiers": {
-            (5, True): "JACKPOT (1000/day)",
-            (5, False): "1000/week",
-            (4, True): 2500,
-            (4, False): 500,
-            (3, True): 100,
-            (3, False): 25,
-            (2, True): 10,
-            (2, False): 4,
-            (1, True): 2
         }
     },
     "VirginiaCash5": {
