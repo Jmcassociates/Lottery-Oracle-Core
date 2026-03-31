@@ -126,6 +126,9 @@ const Dashboard = () => {
       const data = await res.json();
       
       if (!res.ok) {
+        if (res.status === 429) {
+          throw new Error('Neural Link Throttled: Too many generation requests. Please wait a moment for the matrices to cool.');
+        }
         throw new Error(data.detail || 'Generation failed');
       }
       
