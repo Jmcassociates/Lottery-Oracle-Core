@@ -51,9 +51,19 @@ def get_admin_stats(db: Session = Depends(get_db), current_admin: User = Depends
             
         sync_health[game_name] = {"status": status, "last_sync": last_date_str}
 
+    # Determine if a sync is active by looking for any 'IMPORTING' status in the last 10 minutes.
+    # This is much more reliable in multi-instance Cloud Run than an in-memory boolean.
+    ten_mins_ago = datetime.utcnow() - timedelta(minutes=10)
+    active_syncs = db.query(func.count(SyncLog.id)).filter(
+        SyncLog.status == "IMPORTING",
+        SyncLog.executed_at >= ten_mins_ago
+    ).scalar()
+    
+    sync_active = active_syncs > 0
+
     return {
         "status": "online",
-        "sync_active": SYNC_STATE["active"],
+        "sync_active": bool(sync_active),
         "syndicate_metrics": {
             "total_users": total_users,
             "pro_tier": pro_users,

@@ -67,7 +67,7 @@ app.include_router(admin.router, prefix="/api/admin", tags=["admin"])
 
 
 def run_sync_task():
-    SYNC_STATE["active"] = True
+    # DB Lock managed by SyncLog entries
     logger.info("Oracle - Manual Sync - [PHASE 0] Initializing Background Protocol...")
     sync_results = {}
     db = next(get_db())
@@ -130,7 +130,7 @@ def run_sync_task():
     except Exception as global_err:
         logger.error(f"Oracle - Manual Sync - [PHASE 99] GLOBAL PROTOCOL FAILURE: {global_err}")
     finally:
-        SYNC_STATE["active"] = False
+        # DB Lock released naturally as status transitions from IMPORTING
         db.close()
 
 
@@ -169,9 +169,18 @@ def trigger_sync(request: Request, db: Session = Depends(get_db)):
         logger.warning(f"Unauthorized sync attempt blocked from IP: {request.client.host}")
         raise HTTPException(status_code=403, detail="Administrative Clearance Required.")
         
-    if SYNC_STATE["active"]:
-        logger.warning("Oracle - Manual Sync - Trigger rejected: Sync already in progress.")
-        raise HTTPException(status_code=409, detail="A synchronization protocol is already active. Please wait for termination.")
+        # JMc - [2026-03-31] - DB-backed Lock Check.
+    # Prevents collisions in multi-instance environments.
+    ten_mins_ago = datetime.utcnow() - timedelta(minutes=10)
+    active_syncs = db.query(SyncLog).filter(
+        SyncLog.status == "IMPORTING",
+        SyncLog.executed_at >= ten_mins_ago
+    ).count()
+
+    if active_syncs > 0:
+        logger.warning("Oracle - Manual Sync - Trigger rejected: DB-backed lock active.")
+        raise HTTPException(status_code=409, detail="A synchronization protocol is already active in the cluster.")
+
 
     logger.info("Oracle - Manual Sync - Spawning background thread.")
     import threading
