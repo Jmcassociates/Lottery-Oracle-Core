@@ -1,3 +1,4 @@
+import os
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from sqlalchemy import func
@@ -94,9 +95,10 @@ def get_users(skip: int = 0, limit: int = 50, db: Session = Depends(get_db), cur
     ]
 
 @router.post("/users/{user_id}/tier")
-def update_user_tier(user_id: int, payload: dict, db: Session = Depends(get_db), current_admin: User = Depends(get_current_admin_user)):
+async def update_user_tier(user_id: int, payload: dict, db: Session = Depends(get_db), current_admin: User = Depends(get_current_admin_user)):
     """
-    JMc - [2026-03-28] - Manual override for user tiers.
+    JMc - [2026-03-31] - Manual override for user tiers with GHL Pipeline signaling.
+    Updates the local DB and dispatches a signal to GHL to move the contact stage.
     """
     new_tier = payload.get("tier")
     if new_tier not in ["free", "pro"]:
@@ -109,7 +111,29 @@ def update_user_tier(user_id: int, payload: dict, db: Session = Depends(get_db),
     user.tier = new_tier
     db.commit()
     logger.info(f"Admin {current_admin.email} manually updated {user.email} to tier {new_tier}.")
+
+    # JMc - Signal GHL Pipeline via Inbound Webhook
+    ghl_webhook_url = os.getenv("GHL_TIER_UPDATE_WEBHOOK")
+    if ghl_webhook_url:
+        try:
+            import requests
+            # Fire and forget to keep UI responsive
+            payload = {
+                "email": user.email,
+                "tier": new_tier,
+                "source": "oracle_war_room",
+                "admin": current_admin.email
+            }
+            # We don't wait for the response, just log the attempt
+            requests.post(ghl_webhook_url, json=payload, timeout=5)
+            logger.info(f"Oracle - GHL Signal - Payload dispatched for {user.email}")
+        except Exception as e:
+            logger.error(f"Oracle - GHL Signal - Failed to dispatch for {user.email}: {e}")
+    else:
+        logger.warning("Oracle - GHL Signal - GHL_TIER_UPDATE_WEBHOOK not set. Signaling skipped.")
+
     return {"status": "success", "user": user.email, "new_tier": user.tier}
+
 
 @router.get("/logs")
 def get_sync_logs(limit: int = 20, db: Session = Depends(get_db), current_admin: User = Depends(get_current_admin_user)):
