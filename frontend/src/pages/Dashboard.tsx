@@ -1,6 +1,15 @@
 // JMc - [2026-03-16] - Main Oracle Dashboard. Handles all authenticated interactions, Vault retrieval, and Reality Check execution.
 import { useState, useEffect } from 'react';
 import { fetchWithAuth, getTier, logout } from '../utils/auth';
+import mermaid from 'mermaid';
+
+// JMc - [2026-04-01] - Initialize Mermaid for architectural visualization.
+mermaid.initialize({
+  startOnLoad: true,
+  theme: 'dark',
+  securityLevel: 'loose',
+  fontFamily: 'Segoe UI, system-ui, sans-serif'
+});
 
 const API_BASE = import.meta.env.VITE_API_URL || '';
 
@@ -30,6 +39,11 @@ const Dashboard = () => {
   const tier = getTier();
   const maxTickets = tier === 'pro' ? 50 : 5;
   const [numTickets, setNumTickets] = useState<number>(tier === 'pro' ? 20 : 5);
+
+  useEffect(() => {
+    // JMc - [2026-04-01] - Trigger Mermaid re-render whenever the section becomes visible.
+    mermaid.contentLoaded();
+  }, []);
 
   useEffect(() => {
     // JMc - [2026-03-18] - Fetch the available configured states autonomously.
@@ -215,50 +229,60 @@ const Dashboard = () => {
       </header>
 
       <main>
-        {/* Information Dashboard */}
-        <section className="info-dashboard" style={{ display: 'flex', gap: '2rem', marginBottom: '3rem', flexWrap: 'wrap' }}>
-          {games.map(game => (
-            <div key={game} style={{ flex: '1 1 300px', background: 'var(--panel-bg)', padding: '1.5rem', borderRadius: '12px', border: '1px solid var(--border)', minWidth: '300px' }}>
-              <h3 style={{ marginTop: 0, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '1px', fontSize: '0.9rem', borderBottom: '1px solid var(--border)', paddingBottom: '0.5rem' }}>
-                {game === 'MegaMillions' ? 'Mega Millions' : game} Status
-              </h3>
-              
-              <div style={{ marginBottom: '1.5rem' }}>
-                <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '0.25rem' }}>Current Jackpot</div>
-                <div style={{ fontSize: '2rem', fontWeight: 'bold', color: 'var(--accent)' }}>
-                  {jackpots?.[game]?.jackpot || 'Pending...'}
-                </div>
-                <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginTop: '0.25rem' }}>
-                  Next Draw: {jackpots?.[game]?.next_draw || 'Pending...'}
-                </div>
-              </div>
-
-              <div>
-                <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '0.5rem' }}>
-                  Latest Draw ({recentDraws[game] ? (() => {
-                    const [y, m, d] = recentDraws[game].date.split('-');
-                    return new Date(parseInt(y), parseInt(m) - 1, parseInt(d)).toLocaleDateString();
-                  })() : '...'})
-                </div>
-                {recentDraws[game] ? (
-                  <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', flexWrap: 'wrap' }}>
-                    {recentDraws[game].white_balls.map((w: number, i: number) => (
-                      <span key={i} style={{ width: '28px', height: '28px', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--ball-bg)', color: 'var(--ball-text)', borderRadius: '50%', fontWeight: 'bold', fontSize: '0.8rem' }}>
-                        {w.toString().padStart(2, '0')}
-                      </span>
-                    ))}
-                    {recentDraws[game].special_ball !== null && (
-                      <span style={{ width: '28px', height: '28px', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--special-ball-bg)', color: 'white', borderRadius: '50%', fontWeight: 'bold', fontSize: '0.8rem' }}>
-                        {recentDraws[game].special_ball.toString().padStart(2, '0')}
-                      </span>
-                    )}
-                  </div>
-                ) : (
-                  <div style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>Loading recent draw...</div>
-                )}
-              </div>
+        {/* JMc - [2026-04-01] - Current Market Scopes Section */}
+        <section style={{ marginBottom: '3rem' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border)', paddingBottom: '0.5rem', marginBottom: '1.5rem' }}>
+            <h2 style={{ margin: 0, fontSize: '1.5rem', textTransform: 'uppercase', letterSpacing: '1px' }}>Current Market Scopes</h2>
+            <div style={{ fontSize: '0.85rem', color: 'var(--accent)', fontWeight: 'bold', background: 'rgba(59, 130, 246, 0.1)', padding: '0.25rem 0.75rem', borderRadius: '20px' }}>
+              System Expansion: New state-level matrices added weekly
             </div>
-          ))}
+          </div>
+          <div className="info-dashboard" style={{ display: 'flex', gap: '1.5rem', flexWrap: 'wrap' }}>
+            {games.map(game => (
+              <div key={game} style={{ flex: '1 1 280px', background: 'var(--panel-bg)', padding: '1.25rem', borderRadius: '12px', border: '1px solid var(--border)', minWidth: '280px', transition: 'transform 0.2s ease' }}>
+                <h3 style={{ marginTop: 0, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '1px', fontSize: '0.8rem', borderBottom: '1px solid var(--border)', paddingBottom: '0.5rem', marginBottom: '1rem' }}>
+                  {game === 'MegaMillions' ? 'Mega Millions' : game} Status
+                </h3>
+                
+                <div style={{ marginBottom: '1.25rem' }}>
+                  <div style={{ fontSize: '2.2rem', fontWeight: 'bold', color: 'var(--accent)', lineHeight: '1' }}>
+                    {jackpots?.[game]?.jackpot || 'Pending...'}
+                  </div>
+                  <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '0.4rem' }}>
+                    Next Draw: {jackpots?.[game]?.next_draw || 'Pending...'}
+                  </div>
+                </div>
+
+                <div>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '0.5rem', textTransform: 'uppercase' }}>
+                    Latest Draw: {recentDraws[game] ? (() => {
+                      const [y, m, d] = recentDraws[game].date.split('-');
+                      return new Date(parseInt(y), parseInt(m) - 1, parseInt(d)).toLocaleDateString();
+                    })() : '...'}
+                  </div>
+                  {recentDraws[game] ? (
+                    <div style={{ display: 'flex', gap: '0.4rem', alignItems: 'center', flexWrap: 'wrap' }}>
+                      {recentDraws[game].white_balls.map((w: number, i: number) => (
+                        <span key={i} style={{ width: '26px', height: '26px', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--ball-bg)', color: 'var(--ball-text)', borderRadius: '50%', fontWeight: 'bold', fontSize: '0.75rem' }}>
+                          {w.toString().padStart(2, '0')}
+                        </span>
+                      ))}
+                      {recentDraws[game].special_ball !== null && (
+                        <span style={{ width: '26px', height: '26px', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--special-ball-bg)', color: 'white', borderRadius: '50%', fontWeight: 'bold', fontSize: '0.75rem' }}>
+                          {recentDraws[game].special_ball.toString().padStart(2, '0')}
+                        </span>
+                      )}
+                    </div>
+                  ) : (
+                    <div style={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}>Loading recent draw...</div>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+          <p style={{ marginTop: '1rem', fontSize: '0.85rem', color: 'var(--text-muted)', fontStyle: 'italic' }}>
+            * Currently analyzing: {statesList.join(', ')}. Additional high-volume matrices incoming.
+          </p>
         </section>
 
         <section className="control-panel">
@@ -328,6 +352,69 @@ const Dashboard = () => {
             </div>
           </section>
         )}
+
+        {/* JMc - [2026-04-01] - The Mathematical Reality Section */}
+        <section style={{ marginBottom: '4rem', padding: '2rem', background: 'rgba(15, 23, 42, 0.5)', borderRadius: '12px', border: '1px solid var(--border)' }}>
+          <h2 style={{ fontSize: '1.8rem', color: 'var(--text-main)', marginBottom: '1rem', borderBottom: '2px solid var(--accent)', paddingBottom: '0.5rem', display: 'inline-block' }}>
+            The Mathematical Reality: Organizing the Variance
+          </h2>
+          <p style={{ fontSize: '1.1rem', color: 'var(--text-muted)', lineHeight: '1.6', marginBottom: '2rem' }}>
+            The Oracle doesn't predict the future; it <strong>organizes the variance</strong>. Every draw is an independent event, and the ping-pong balls do not have memory. We don't ask for "lucky numbers"; we apply raw empirical data to a game of pure, brutal mathematical variance.
+          </p>
+
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '2rem', marginBottom: '3rem' }}>
+            <div style={{ padding: '1.5rem', background: 'var(--panel-bg)', borderRadius: '8px', borderLeft: '4px solid var(--accent)' }}>
+              <h3 style={{ color: 'var(--accent)', marginTop: 0 }}>01. The Prophet</h3>
+              <p style={{ fontSize: '0.9rem', color: 'var(--text-muted)' }}>
+                <strong>Autonomous Seeding:</strong> Scans a decade of historical data using <strong>Markov Chains</strong> (40%), <strong>Poisson Distribution</strong> (40%), and <strong>Base Frequency</strong> (20%) to build a high-tension 15-number Smart Pool.
+              </p>
+            </div>
+            <div style={{ padding: '1.5rem', background: 'var(--panel-bg)', borderRadius: '8px', borderLeft: '4px solid #8b5cf6' }}>
+              <h3 style={{ color: '#8b5cf6', marginTop: 0 }}>02. The Pragmatist</h3>
+              <p style={{ fontSize: '0.9rem', color: 'var(--text-muted)' }}>
+                <strong>Combinatorial Wheeling:</strong> Takes the Smart Pool and establishes maximum coverage across 3,003 possible variations, prioritizing 3-number triplets to ensure structural integrity in every batch.
+              </p>
+            </div>
+            <div style={{ padding: '1.5rem', background: 'var(--panel-bg)', borderRadius: '8px', borderLeft: '4px solid #10b981' }}>
+              <h3 style={{ color: '#10b981', marginTop: 0 }}>03. The Pattern Scouter</h3>
+              <p style={{ fontSize: '0.9rem', color: 'var(--text-muted)' }}>
+                <strong>The Purge:</strong> Enforces strict geometric filters. We reject odd/even outliers, spatial spread traps, consecutive sequences, and historical jackpot collisions. We bring a supercomputer to a knife fight.
+              </p>
+            </div>
+          </div>
+
+          <div style={{ padding: '2rem', background: '#020617', borderRadius: '12px', border: '1px solid var(--border)' }}>
+            <h4 style={{ textAlign: 'center', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '2px', marginBottom: '1.5rem', fontSize: '0.8rem' }}>
+              Autonomous Architecture Flow
+            </h4>
+            <div className="mermaid" style={{ display: 'flex', justifyContent: 'center' }}>
+{`graph TD
+    DB[(10-Year Database)] --> PROPHET[The Prophet Algorithm]
+    
+    subgraph Scoring Models
+        PROPHET --> |40% Weight| M[Markov Chain]
+        PROPHET --> |40% Weight| P[Poisson Tension]
+        PROPHET --> |20% Weight| F[Frequency]
+    end
+    
+    M & P & F --> POOL[15-Number Smart Pool]
+    
+    POOL --> PRAGMATIST[The Pragmatist]
+    PRAGMATIST --> |Wheeling| ALL[3,003 Combinations]
+    
+    ALL --> SCOUTER{Pattern Scouter}
+    
+    SCOUTER -->|Approve| FINAL[Final Optimized Batch]
+    
+    style DB fill:#1e293b,stroke:#334155,color:#fff
+    style PROPHET fill:#1e3a8a,stroke:#3b82f6,color:#fff
+    style POOL fill:#064e3b,stroke:#10b981,color:#fff
+    style PRAGMATIST fill:#4c1d95,stroke:#8b5cf6,color:#fff
+    style SCOUTER fill:#92400e,stroke:#f59e0b,color:#fff
+    style FINAL fill:#065f46,stroke:#10b981,color:#fff`}
+            </div>
+          </div>
+        </section>
 
         <section className="vault">
           <h2>The Vault (Saved Batches)</h2>
@@ -521,6 +608,23 @@ const Dashboard = () => {
             </div>
           )}
         </section>
+
+        {/* JMc - [2026-04-01] - Final Call to Action for Free Tier */}
+        {tier === 'free' && (
+          <section style={{ marginTop: '4rem', padding: '3rem', background: 'linear-gradient(135deg, var(--panel-bg) 0%, #1e3a8a 100%)', borderRadius: '16px', border: '1px solid var(--accent)', textAlign: 'center', boxShadow: '0 10px 30px rgba(0,0,0,0.3)' }}>
+            <h2 style={{ fontSize: '2rem', marginBottom: '1rem', color: 'white' }}>The standard terminal is a window; the Pro Tier is a supercomputer.</h2>
+            <p style={{ fontSize: '1.2rem', color: 'var(--text-main)', opacity: '0.9', maxWidth: '700px', margin: '0 auto 2.5rem' }}>
+              Unlock high-volume coverage, advanced Markov dashboards, and 50 tickets per generation. Stop watching the map and start driving the vehicle.
+            </p>
+            <button 
+              onClick={handleUpgrade}
+              className="btn-primary" 
+              style={{ fontSize: '1.2rem', padding: '1rem 3rem', boxShadow: '0 0 20px rgba(59, 130, 246, 0.5)', letterSpacing: '1px' }}
+            >
+              ELEVATE TO PRO TIER
+            </button>
+          </section>
+        )}
       </main>
     </div>
   );
