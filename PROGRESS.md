@@ -1,5 +1,11 @@
 # Project Progress: Lottery Oracle Dashboard
 
+### 2026-04-01 19:15 EDT - Phase 13: Market Watch & Ghost Game Cleanup (v2.2)
+- **Landing Page Refactor (v2.2):** Fully implemented the "Market Watch" aesthetic for public-facing jackpot displays. Replaced the generic grid with high-signal cards including state labels (Virginia, Texas, New York, National).
+- **Retired Game Purge:** Removed the discontinued "Cash4Life" game from the frontend logic to align with the backend sync capabilities.
+- **Sync Alignment:** Verified that all displayed games match the authoritative `GAMES` configuration in `app.core.config`, reducing "Pending" states and improving data honesty for prospective users.
+- **Visual Hardening:** Added a subtle bottom-accent glow to Market Watch cards to match the Pro Tier dashboard styling.
+
 ### 2026-04-01 18:15 EDT - Phase 12: Oracle Command Terminal (Frontend v2.1)
 - **Dashboard UI Refactor:** Transitioned the "Information Dashboard" to a professional "Current Market Scopes" aesthetic. Cards are now more compact and high-signal, with a system expansion banner.
 - **Mathematical Reality Injection:** Integrated in-depth descriptions of the "Prophet", "Pragmatist", and "Pattern Scouter" engines directly into the primary dashboard, bridging the gap between marketing and technical reality.

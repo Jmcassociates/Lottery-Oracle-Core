@@ -174,3 +174,35 @@ select {
   font-size: 1.2rem;
   box-shadow: inset -2px -2px 6px rgba(0,0,0,0.3);
 }
+
+/* JMc - [2026-04-01] - Global Pulse Ticker Styles */
+.ticker-container {
+  width: 100%;
+  overflow-x: auto;
+  padding: 1rem 0;
+  margin-bottom: 2rem;
+  display: flex;
+  gap: 1.5rem;
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none;  /* IE and Edge */
+  mask-image: linear-gradient(to right, transparent, black 5%, black 95%, transparent);
+  -webkit-mask-image: linear-gradient(to right, transparent, black 5%, black 95%, transparent);
+}
+
+.ticker-container::-webkit-scrollbar {
+  display: none; /* Chrome, Safari and Opera */
+}
+
+.ticker-card {
+  flex: 0 0 260px;
+  background: var(--panel-bg);
+  padding: 1.25rem;
+  borderRadius: 12px;
+  border: 1px solid var(--border);
+  transition: border-color 0.2s ease, transform 0.2s ease;
+}
+
+.ticker-card:hover {
+  border-color: var(--accent);
+  transform: translateY(-2px);
+}

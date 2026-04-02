@@ -1,4 +1,3 @@
-// JMc - [2026-03-16] - Main Oracle Dashboard. Handles all authenticated interactions, Vault retrieval, and Reality Check execution.
 import { useState, useEffect } from 'react';
 import { fetchWithAuth, getTier, logout } from '../utils/auth';
 import mermaid from 'mermaid';
@@ -17,12 +16,14 @@ interface JackpotData {
   [game: string]: {
     jackpot: string;
     next_draw: string;
+    state?: string;
   }
 }
 
 const Dashboard = () => {
   const [statesList, setStatesList] = useState<string[]>(['VA']);
   const [games, setGames] = useState<string[]>([]);
+  const [allGames, setAllGames] = useState<{id: string, name: string, state: string}[]>([]);
   const [selectedGame, setSelectedGame] = useState<string>('Powerball');
   const [selectedState, setSelectedState] = useState<string>('VA');
   const [tickets, setTickets] = useState<any[]>([]);
@@ -41,7 +42,7 @@ const Dashboard = () => {
   const [numTickets, setNumTickets] = useState<number>(tier === 'pro' ? 20 : 5);
 
   useEffect(() => {
-    // JMc - [2026-04-01] - Trigger Mermaid re-render whenever the section becomes visible.
+    // JMc - [2026-04-01] - Trigger Mermaid re-render.
     mermaid.contentLoaded();
   }, []);
 
@@ -62,52 +63,52 @@ const Dashboard = () => {
   }, []);
 
   useEffect(() => {
-    // JMc - [2026-03-16] - Dynamically fetch available games from the API configuration.
-    // JMc - [2026-03-18] - Appending timestamp to prevent aggressive browser caching on state switch.
-    console.log(`Dashboard mount - fetching games for ${selectedState}...`);
+    // JMc - [2026-04-01] - Fetch ALL games across ALL states for the Global Pulse Ticker.
+    const ts = new Date().getTime();
+    fetch(`${API_BASE}/api/games?_t=${ts}`)
+      .then(res => res.json())
+      .then(data => {
+        if (data.games_full) {
+          setAllGames(data.games_full);
+          // Pre-fetch recent draws for the ticker
+          data.games_full.forEach((g: any) => {
+             fetchWithAuth(`/api/history/${g.id}?limit=1&_t=${ts}`)
+              .then(res => res.json())
+              .then(history => {
+                if (history && history.length > 0) {
+                  setRecentDraws(prev => ({...prev, [g.id]: history[0]}));
+                }
+              })
+              .catch(err => console.error(`Failed to load history for ${g.id}:`, err));
+          });
+        }
+      })
+      .catch(err => console.error("Failed to load global game roster:", err));
+
+    // Pull jackpots for ALL games
+    fetch(`${API_BASE}/api/jackpots?_t=${ts}`)
+      .then(res => res.json())
+      .then(data => setJackpots(data))
+      .catch(err => console.error("Failed to load global jackpots:", err));
+  }, []);
+
+  useEffect(() => {
+    // JMc - [2026-03-16] - Dynamically fetch available games for the selector.
     const ts = new Date().getTime();
     fetch(`${API_BASE}/api/games?state=${selectedState}&_t=${ts}`)
       .then(res => res.json())
       .then(data => {
-        console.log("Games loaded:", data);
         if (data.games) {
           setGames(data.games);
           setSelectedGame(data.games[0]);
-          
-          // JMc - [2026-03-16] - Fetch recent draws for all games
-          data.games.forEach((game: string) => {
-            console.log(`Fetching history for ${game}...`);
-            fetchWithAuth(`/api/history/${game}?limit=1&_t=${ts}`)
-              .then(res => {
-                if (!res.ok) throw new Error(`HTTP ${res.status}`);
-                return res.json();
-              })
-              .then(history => {
-                console.log(`History for ${game}:`, history);
-                if (history && history.length > 0) {
-                  setRecentDraws(prev => ({...prev, [game]: history[0]}));
-                }
-              })
-              .catch(err => console.error(`Failed to load history for ${game}:`, err));
-          });
         }
       })
-      .catch(err => console.error("Failed to load games:", err));
-      
-    // JMc - [2026-03-16] - Pull live jackpots from the scraper
-    fetch(`${API_BASE}/api/jackpots?state=${selectedState}&_t=${ts}`)
-      .then(res => res.json())
-      .then(data => {
-        console.log("Jackpots loaded:", data);
-        setJackpots(data);
-      })
-      .catch(err => console.error("Failed to load jackpots:", err));
+      .catch(err => console.error("Failed to load local games:", err));
       
     loadSavedTickets();
   }, [selectedState]);
 
   const loadSavedTickets = async () => {
-    // JMc - [2026-03-16] - Fetch historical artifacts (batches) from the Vault.
     try {
       const res = await fetchWithAuth('/api/my-tickets');
       if (res.ok) {
@@ -120,32 +121,26 @@ const Dashboard = () => {
   };
 
   const handleUpgrade = () => {
-    // JMc - [2026-03-26] - Redirects the user to the GHL Funnel Paywall.
     window.location.href = "https://oracle.moderncyph3r.com/offering-page";
   };
 
   const generateTickets = async () => {
-    // JMc - [2026-03-16] - Dispatch generation request to the selected Mathematical Engine.
     setLoading(true);
     setError(null);
     setTickets([]);
     
     try {
       const safeNumTickets = Math.min(Math.max(1, numTickets), maxTickets);
-      
       const res = await fetchWithAuth(`/api/generate/${selectedGame}?num_tickets=${safeNumTickets}`, {
         method: 'POST'
       });
-      
       const data = await res.json();
-      
       if (!res.ok) {
         if (res.status === 429) {
           throw new Error('Neural Link Throttled: Too many generation requests. Please wait a moment for the matrices to cool.');
         }
         throw new Error(data.detail || 'Generation failed');
       }
-      
       setTickets(data.tickets);
       loadSavedTickets(); 
     } catch (e: any) {
@@ -156,7 +151,6 @@ const Dashboard = () => {
   };
 
   const checkBatch = async (batchId: number) => {
-    // JMc - [2026-03-16] - Trigger the Reality Check ROI calculator.
     setCheckingBatch(batchId);
     try {
       const res = await fetchWithAuth(`/api/check-batch/${batchId}`);
@@ -172,9 +166,7 @@ const Dashboard = () => {
   };
 
   const deleteBatch = async (batchId: number) => {
-    // JMc - [2026-03-18] - Purge historical artifacts from the vault.
     if (!window.confirm("Are you sure you want to permanently delete this batch? This cannot be undone.")) return;
-    
     try {
       const res = await fetchWithAuth(`/api/batches/${batchId}`, { method: 'DELETE' });
       if (res.ok) {
@@ -187,7 +179,6 @@ const Dashboard = () => {
   };
 
   const exportBatch = async (batchId: number, gameName: string) => {
-    // JMc - [2026-03-16] - Fetch the PDF Manifest and force a local download.
     try {
       const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
       const res = await fetchWithAuth(`/api/export-batch/${batchId}?tz=${encodeURIComponent(tz)}`);
@@ -207,6 +198,68 @@ const Dashboard = () => {
     }
   };
 
+  const MathRealitySection = () => (
+    <section style={{ marginBottom: '4rem', padding: '2rem', background: 'rgba(15, 23, 42, 0.5)', borderRadius: '12px', border: '1px solid var(--border)' }}>
+      <h2 style={{ fontSize: '1.8rem', color: 'var(--text-main)', marginBottom: '1rem', borderBottom: '2px solid var(--accent)', paddingBottom: '0.5rem', display: 'inline-block' }}>
+        The Mathematical Reality: Organizing the Variance
+      </h2>
+      <p style={{ fontSize: '1.1rem', color: 'var(--text-muted)', lineHeight: '1.6', marginBottom: '2rem' }}>
+        The Oracle doesn't predict the future; it <strong>organizes the variance</strong>. Every draw is an independent event, and the ping-pong balls do not have memory. We don't ask for "lucky numbers"; we apply raw empirical data to a game of pure, brutal mathematical variance.
+      </p>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '2rem', marginBottom: '3rem' }}>
+        <div style={{ padding: '1.5rem', background: 'var(--panel-bg)', borderRadius: '8px', borderLeft: '4px solid var(--accent)' }}>
+          <h3 style={{ color: 'var(--accent)', marginTop: 0 }}>01. The Prophet</h3>
+          <p style={{ fontSize: '0.9rem', color: 'var(--text-muted)' }}>
+            <strong>Autonomous Seeding:</strong> Scans a decade of historical data using <strong>Markov Chains</strong> (40%), <strong>Poisson Distribution</strong> (40%), and <strong>Base Frequency</strong> (20%) to build a high-tension 15-number Smart Pool.
+          </p>
+        </div>
+        <div style={{ padding: '1.5rem', background: 'var(--panel-bg)', borderRadius: '8px', borderLeft: '4px solid #8b5cf6' }}>
+          <h3 style={{ color: '#8b5cf6', marginTop: 0 }}>02. The Pragmatist</h3>
+          <p style={{ fontSize: '0.9rem', color: 'var(--text-muted)' }}>
+            <strong>Combinatorial Wheeling:</strong> Takes the Smart Pool and establishes maximum coverage across 3,003 possible variations, prioritizing 3-number triplets to ensure structural integrity in every batch.
+          </p>
+        </div>
+        <div style={{ padding: '1.5rem', background: 'var(--panel-bg)', borderRadius: '8px', borderLeft: '4px solid #10b981' }}>
+          <h3 style={{ color: '#10b981', marginTop: 0 }}>03. The Pattern Scouter</h3>
+          <p style={{ fontSize: '0.9rem', color: 'var(--text-muted)' }}>
+            <strong>The Purge:</strong> Enforces strict geometric filters. We reject odd/even outliers, spatial spread traps, consecutive sequences, and historical jackpot collisions.
+          </p>
+        </div>
+      </div>
+      <div style={{ padding: '2rem', background: '#020617', borderRadius: '12px', border: '1px solid var(--border)' }}>
+        <h4 style={{ textAlign: 'center', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '2px', marginBottom: '1.5rem', fontSize: '0.8rem' }}>
+          Autonomous Architecture Flow
+        </h4>
+        <div className="mermaid" style={{ display: 'flex', justifyContent: 'center' }}>
+{`graph TD
+    DB[(10-Year Database)] --> PROPHET[The Prophet Algorithm]
+    
+    subgraph Scoring Models
+        PROPHET --> |40% Weight| M[Markov Chain]
+        PROPHET --> |40% Weight| P[Poisson Tension]
+        PROPHET --> |20% Weight| F[Frequency]
+    end
+    
+    M & P & F --> POOL[15-Number Smart Pool]
+    
+    POOL --> PRAGMATIST[The Pragmatist]
+    PRAGMATIST --> |Wheeling| ALL[3,003 Combinations]
+    
+    ALL --> SCOUTER{Pattern Scouter}
+    
+    SCOUTER -->|Approve| FINAL[Final Optimized Batch]
+    
+    style DB fill:#1e293b,stroke:#334155,color:#fff
+    style PROPHET fill:#1e3a8a,stroke:#3b82f6,color:#fff
+    style POOL fill:#064e3b,stroke:#10b981,color:#fff
+    style PRAGMATIST fill:#4c1d95,stroke:#8b5cf6,color:#fff
+    style SCOUTER fill:#92400e,stroke:#f59e0b,color:#fff
+    style FINAL fill:#065f46,stroke:#10b981,color:#fff`}
+        </div>
+      </div>
+    </section>
+  );
+
   return (
     <div className="container">
       <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -221,7 +274,7 @@ const Dashboard = () => {
             style={{ padding: '0.5rem', borderRadius: '4px', background: 'var(--panel-bg)', color: 'var(--text-main)', border: '1px solid var(--border)' }}
           >
             {statesList.map(st => (
-              <option key={st} value={st}>{st === 'VA' ? 'Virginia (VA)' : st === 'TX' ? 'Texas (TX)' : st}</option>
+              <option key={st} value={st}>{st === 'VA' ? 'Virginia (VA)' : st === 'TX' ? 'Texas (TX)' : st === 'NY' ? 'New York (NY)' : st}</option>
             ))}
           </select>
           <button onClick={logout} className="btn-secondary">Logout</button>
@@ -229,72 +282,50 @@ const Dashboard = () => {
       </header>
 
       <main>
-        {/* JMc - [2026-04-01] - Current Market Scopes Section */}
-        <section style={{ marginBottom: '3rem' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border)', paddingBottom: '0.5rem', marginBottom: '1.5rem' }}>
-            <h2 style={{ margin: 0, fontSize: '1.5rem', textTransform: 'uppercase', letterSpacing: '1px' }}>Current Market Scopes</h2>
-            <div style={{ fontSize: '0.85rem', color: 'var(--accent)', fontWeight: 'bold', background: 'rgba(59, 130, 246, 0.1)', padding: '0.25rem 0.75rem', borderRadius: '20px' }}>
-              System Expansion: New state-level matrices added weekly
-            </div>
-          </div>
-          <div className="info-dashboard" style={{ display: 'flex', gap: '1.5rem', flexWrap: 'wrap' }}>
-            {games.map(game => (
-              <div key={game} style={{ flex: '1 1 280px', background: 'var(--panel-bg)', padding: '1.25rem', borderRadius: '12px', border: '1px solid var(--border)', minWidth: '280px', transition: 'transform 0.2s ease' }}>
-                <h3 style={{ marginTop: 0, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '1px', fontSize: '0.8rem', borderBottom: '1px solid var(--border)', paddingBottom: '0.5rem', marginBottom: '1rem' }}>
-                  {game === 'MegaMillions' ? 'Mega Millions' : game} Status
-                </h3>
-                
-                <div style={{ marginBottom: '1.25rem' }}>
-                  <div style={{ fontSize: '2.2rem', fontWeight: 'bold', color: 'var(--accent)', lineHeight: '1' }}>
-                    {jackpots?.[game]?.jackpot || 'Pending...'}
-                  </div>
-                  <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '0.4rem' }}>
-                    Next Draw: {jackpots?.[game]?.next_draw || 'Pending...'}
-                  </div>
-                </div>
-
-                <div>
-                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '0.5rem', textTransform: 'uppercase' }}>
-                    Latest Draw: {recentDraws[game] ? (() => {
-                      const [y, m, d] = recentDraws[game].date.split('-');
-                      return new Date(parseInt(y), parseInt(m) - 1, parseInt(d)).toLocaleDateString();
-                    })() : '...'}
-                  </div>
-                  {recentDraws[game] ? (
-                    <div style={{ display: 'flex', gap: '0.4rem', alignItems: 'center', flexWrap: 'wrap' }}>
-                      {recentDraws[game].white_balls.map((w: number, i: number) => (
-                        <span key={i} style={{ width: '26px', height: '26px', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--ball-bg)', color: 'var(--ball-text)', borderRadius: '50%', fontWeight: 'bold', fontSize: '0.75rem' }}>
-                          {w.toString().padStart(2, '0')}
-                        </span>
-                      ))}
-                      {recentDraws[game].special_ball !== null && (
-                        <span style={{ width: '26px', height: '26px', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--special-ball-bg)', color: 'white', borderRadius: '50%', fontWeight: 'bold', fontSize: '0.75rem' }}>
-                          {recentDraws[game].special_ball.toString().padStart(2, '0')}
-                        </span>
-                      )}
-                    </div>
-                  ) : (
-                    <div style={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}>Loading recent draw...</div>
-                  )}
-                </div>
+        {/* JMc - [2026-04-01] - Global Pulse Ticker */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+           <h2 style={{ margin: 0, fontSize: '0.9rem', textTransform: 'uppercase', letterSpacing: '1px', color: 'var(--text-muted)' }}>Global Pulse Ticker</h2>
+           <span style={{ fontSize: '0.75rem', color: 'var(--accent)', fontWeight: 'bold' }}>SYSTEM ONLINE • MATRICES EXPANDING WEEKLY</span>
+        </div>
+        <div className="ticker-container">
+          {(allGames.length > 0 ? allGames : [{id: 'Powerball', name: 'Powerball', state: 'National'}, {id: 'MegaMillions', name: 'Mega Millions', state: 'National'}]).map(game => (
+            <div key={game.id} className="ticker-card">
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.5rem' }}>
+                <span style={{ fontSize: '0.65rem', color: 'var(--accent)', fontWeight: 'bold', textTransform: 'uppercase' }}>{game.state}</span>
+                <span style={{ fontSize: '0.6rem', color: 'var(--text-muted)' }}>{recentDraws[game.id] ? recentDraws[game.id].date : ''}</span>
               </div>
-            ))}
-          </div>
-          <p style={{ marginTop: '1rem', fontSize: '0.85rem', color: 'var(--text-muted)', fontStyle: 'italic' }}>
-            * Currently analyzing: {statesList.join(', ')}. Additional high-volume matrices incoming.
-          </p>
-        </section>
+              <div style={{ fontSize: '0.9rem', fontWeight: 'bold', marginBottom: '0.25rem' }}>{game.name}</div>
+              <div style={{ fontSize: '1.2rem', fontWeight: 'bold', color: 'white', marginBottom: '0.5rem' }}>
+                {jackpots?.[game.id]?.jackpot || 'Syncing...'}
+              </div>
+              {recentDraws[game.id] && (
+                <div style={{ display: 'flex', gap: '0.25rem' }}>
+                   {recentDraws[game.id].white_balls.slice(0, 5).map((w: number, i: number) => (
+                     <span key={i} style={{ width: '18px', height: '18px', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--ball-bg)', color: 'var(--ball-text)', borderRadius: '50%', fontWeight: 'bold', fontSize: '0.6rem' }}>
+                       {w.toString().padStart(2, '0')}
+                     </span>
+                   ))}
+                   {recentDraws[game.id].special_ball !== null && (
+                     <span style={{ width: '18px', height: '18px', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--special-ball-bg)', color: 'white', borderRadius: '50%', fontWeight: 'bold', fontSize: '0.6rem' }}>
+                       {recentDraws[game.id].special_ball.toString().padStart(2, '0')}
+                     </span>
+                   )}
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
 
         <section className="control-panel">
           <div style={{ display: 'flex', gap: '2rem', flex: 1 }}>
             <div className="selector" style={{ flex: 1 }}>
-              <label>Target Game:</label>
+              <label>Target Game Matrix:</label>
               <select value={selectedGame} onChange={(e) => setSelectedGame(e.target.value)}>
                 {games.map(g => <option key={g} value={g}>{g}</option>)}
               </select>
             </div>
             <div className="selector" style={{ flex: 1 }}>
-              <label>Number of Tickets (Max {maxTickets}):</label>
+              <label>Volume (Max {maxTickets}):</label>
               <input 
                 type="number" 
                 min="1" 
@@ -322,16 +353,17 @@ const Dashboard = () => {
 
         {error && (
           <div style={{ backgroundColor: 'rgba(239, 68, 68, 0.1)', color: '#ef4444', padding: '1rem', borderRadius: '8px', marginBottom: '2rem', border: '1px solid rgba(239, 68, 68, 0.3)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <div>
-              <strong>System Halt:</strong> {error}
-            </div>
+            <div><strong>System Halt:</strong> {error}</div>
             {error.includes('Upgrade to Pro') && (
               <button onClick={handleUpgrade} style={{ background: '#ef4444', color: 'white', border: 'none', padding: '0.5rem 1rem', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold' }}>
-                Mock Upgrade (Bypass Billing)
+                Elevate Tier
               </button>
             )}
           </div>
         )}
+
+        {/* Free Tier: Show Math Reality here */}
+        {tier !== 'pro' && <MathRealitySection />}
 
         {tickets.length > 0 && (
           <section className="results" style={{ marginBottom: '4rem' }}>
@@ -353,79 +385,14 @@ const Dashboard = () => {
           </section>
         )}
 
-        {/* JMc - [2026-04-01] - The Mathematical Reality Section */}
-        <section style={{ marginBottom: '4rem', padding: '2rem', background: 'rgba(15, 23, 42, 0.5)', borderRadius: '12px', border: '1px solid var(--border)' }}>
-          <h2 style={{ fontSize: '1.8rem', color: 'var(--text-main)', marginBottom: '1rem', borderBottom: '2px solid var(--accent)', paddingBottom: '0.5rem', display: 'inline-block' }}>
-            The Mathematical Reality: Organizing the Variance
-          </h2>
-          <p style={{ fontSize: '1.1rem', color: 'var(--text-muted)', lineHeight: '1.6', marginBottom: '2rem' }}>
-            The Oracle doesn't predict the future; it <strong>organizes the variance</strong>. Every draw is an independent event, and the ping-pong balls do not have memory. We don't ask for "lucky numbers"; we apply raw empirical data to a game of pure, brutal mathematical variance.
-          </p>
-
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '2rem', marginBottom: '3rem' }}>
-            <div style={{ padding: '1.5rem', background: 'var(--panel-bg)', borderRadius: '8px', borderLeft: '4px solid var(--accent)' }}>
-              <h3 style={{ color: 'var(--accent)', marginTop: 0 }}>01. The Prophet</h3>
-              <p style={{ fontSize: '0.9rem', color: 'var(--text-muted)' }}>
-                <strong>Autonomous Seeding:</strong> Scans a decade of historical data using <strong>Markov Chains</strong> (40%), <strong>Poisson Distribution</strong> (40%), and <strong>Base Frequency</strong> (20%) to build a high-tension 15-number Smart Pool.
-              </p>
-            </div>
-            <div style={{ padding: '1.5rem', background: 'var(--panel-bg)', borderRadius: '8px', borderLeft: '4px solid #8b5cf6' }}>
-              <h3 style={{ color: '#8b5cf6', marginTop: 0 }}>02. The Pragmatist</h3>
-              <p style={{ fontSize: '0.9rem', color: 'var(--text-muted)' }}>
-                <strong>Combinatorial Wheeling:</strong> Takes the Smart Pool and establishes maximum coverage across 3,003 possible variations, prioritizing 3-number triplets to ensure structural integrity in every batch.
-              </p>
-            </div>
-            <div style={{ padding: '1.5rem', background: 'var(--panel-bg)', borderRadius: '8px', borderLeft: '4px solid #10b981' }}>
-              <h3 style={{ color: '#10b981', marginTop: 0 }}>03. The Pattern Scouter</h3>
-              <p style={{ fontSize: '0.9rem', color: 'var(--text-muted)' }}>
-                <strong>The Purge:</strong> Enforces strict geometric filters. We reject odd/even outliers, spatial spread traps, consecutive sequences, and historical jackpot collisions. We bring a supercomputer to a knife fight.
-              </p>
-            </div>
-          </div>
-
-          <div style={{ padding: '2rem', background: '#020617', borderRadius: '12px', border: '1px solid var(--border)' }}>
-            <h4 style={{ textAlign: 'center', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '2px', marginBottom: '1.5rem', fontSize: '0.8rem' }}>
-              Autonomous Architecture Flow
-            </h4>
-            <div className="mermaid" style={{ display: 'flex', justifyContent: 'center' }}>
-{`graph TD
-    DB[(10-Year Database)] --> PROPHET[The Prophet Algorithm]
-    
-    subgraph Scoring Models
-        PROPHET --> |40% Weight| M[Markov Chain]
-        PROPHET --> |40% Weight| P[Poisson Tension]
-        PROPHET --> |20% Weight| F[Frequency]
-    end
-    
-    M & P & F --> POOL[15-Number Smart Pool]
-    
-    POOL --> PRAGMATIST[The Pragmatist]
-    PRAGMATIST --> |Wheeling| ALL[3,003 Combinations]
-    
-    ALL --> SCOUTER{Pattern Scouter}
-    
-    SCOUTER -->|Approve| FINAL[Final Optimized Batch]
-    
-    style DB fill:#1e293b,stroke:#334155,color:#fff
-    style PROPHET fill:#1e3a8a,stroke:#3b82f6,color:#fff
-    style POOL fill:#064e3b,stroke:#10b981,color:#fff
-    style PRAGMATIST fill:#4c1d95,stroke:#8b5cf6,color:#fff
-    style SCOUTER fill:#92400e,stroke:#f59e0b,color:#fff
-    style FINAL fill:#065f46,stroke:#10b981,color:#fff`}
-            </div>
-          </div>
-        </section>
-
         <section className="vault">
-          <h2>The Vault (Saved Batches)</h2>
+          <h2>The Vault (Historical Artifacts)</h2>
           {savedBatches.length === 0 ? (
             <p style={{ color: 'var(--text-muted)' }}>No historical artifacts found in your sector.</p>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
               {savedBatches.map(batch => (
                 <div key={batch.id} style={{ background: 'var(--panel-bg)', borderRadius: '8px', border: '1px solid var(--border)', overflow: 'hidden' }}>
-                  
-                  {/* Batch Header */}
                   <div 
                     onClick={() => setExpandedBatch(expandedBatch === batch.id ? null : batch.id)}
                     style={{ padding: '1rem 1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer', background: expandedBatch === batch.id ? 'rgba(255,255,255,0.02)' : 'transparent' }}
@@ -437,192 +404,69 @@ const Dashboard = () => {
                       </span>
                     </div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
-                      <div style={{ color: 'var(--accent)', fontWeight: 'bold' }}>
-                        {expandedBatch === batch.id ? 'Hide Tickets ↑' : 'View Tickets ↓'}
-                      </div>
-                      <button 
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          deleteBatch(batch.id);
-                        }}
-                        style={{
-                          background: 'transparent',
-                          color: '#ef4444',
-                          border: '1px solid #ef4444',
-                          padding: '0.25rem 0.75rem',
-                          borderRadius: '4px',
-                          cursor: 'pointer',
-                          fontSize: '0.85rem',
-                          fontWeight: 'bold',
-                          transition: 'all 0.2s ease'
-                        }}
-                        onMouseOver={(e) => { e.currentTarget.style.background = '#ef4444'; e.currentTarget.style.color = 'white'; }}
-                        onMouseOut={(e) => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = '#ef4444'; }}
-                      >
-                        Delete
-                      </button>
+                      <div style={{ color: 'var(--accent)', fontWeight: 'bold' }}>{expandedBatch === batch.id ? 'Hide ↑' : 'View ↓'}</div>
+                      <button onClick={(e) => { e.stopPropagation(); deleteBatch(batch.id); }} className="btn-secondary" style={{ padding: '0.25rem 0.75rem', color: '#ef4444', borderColor: '#ef4444' }}>Delete</button>
                     </div>
                   </div>
 
-                  {/* Expanded Tickets & Reality Check */}
                   {expandedBatch === batch.id && (
                     <div style={{ padding: '1.5rem', borderTop: '1px solid var(--border)', background: 'rgba(0,0,0,0.2)' }}>
-                      
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
                         <h3 style={{ margin: 0, fontSize: '1.1rem' }}>Generated Combinations</h3>
                         <div style={{ display: 'flex', gap: '1rem' }}>
-                          <button 
-                            onClick={() => exportBatch(batch.id, batch.game_name)} 
-                            style={{ background: 'transparent', color: 'var(--text-main)', border: '1px solid var(--border)', padding: '0.5rem 1rem', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold', transition: 'all 0.2s ease', display: 'flex', alignItems: 'center', gap: '0.5rem' }}
-                          >
-                            <span>📄</span> Export PDF
-                          </button>
-                          <button 
-                            onClick={() => checkBatch(batch.id)} 
-                            disabled={checkingBatch === batch.id}
-                            style={{ background: 'transparent', color: 'var(--accent)', border: '1px solid var(--accent)', padding: '0.5rem 1rem', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold', transition: 'all 0.2s ease' }}
-                            onMouseOver={(e) => { e.currentTarget.style.background = 'var(--accent)'; e.currentTarget.style.color = 'white'; }}
-                            onMouseOut={(e) => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--accent)'; }}
-                          >
-                            {checkingBatch === batch.id ? 'Running Analysis...' : 'Run Reality Check'}
-                          </button>
+                          <button onClick={() => exportBatch(batch.id, batch.game_name)} className="btn-secondary">📄 Export PDF</button>
+                          <button onClick={() => checkBatch(batch.id)} disabled={checkingBatch === batch.id} className="btn-primary">{checkingBatch === batch.id ? 'Checking...' : 'Run Reality Check'}</button>
                         </div>
                       </div>
 
-                      {/* Reality Check Results */}
                       {batchResults[batch.id] && (
                         <div style={{ marginBottom: '2rem', padding: '1.5rem', borderRadius: '8px', background: 'var(--bg-color)', border: '1px solid var(--border)' }}>
                           <h3 style={{ marginTop: 0, borderBottom: '1px solid var(--border)', paddingBottom: '0.5rem' }}>Reality Check Report</h3>
-                          {batchResults[batch.id].status === 'pending' ? (
-                            <p style={{ color: 'var(--text-muted)' }}>{batchResults[batch.id].message}</p>
-                          ) : (
-                            <div>
-                              <div style={{ display: 'flex', gap: '2rem', marginBottom: '1.5rem' }}>
-                                <div>
-                                  <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', textTransform: 'uppercase' }}>Draws Checked</div>
-                                  <div style={{ fontSize: '1.5rem', fontWeight: 'bold' }}>{batchResults[batch.id].draws_checked}</div>
-                                </div>
-                                <div>
-                                  <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', textTransform: 'uppercase' }}>Total Spent</div>
-                                  <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#ef4444' }}>${batchResults[batch.id].total_spent}</div>
-                                </div>
-                                <div>
-                                  <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', textTransform: 'uppercase' }}>Total Won</div>
-                                  <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: batchResults[batch.id].total_won > 0 ? '#10b981' : 'var(--text-main)' }}>${batchResults[batch.id].total_won}</div>
-                                </div>
-                                <div>
-                                  <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', textTransform: 'uppercase' }}>Net ROI</div>
-                                  <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: batchResults[batch.id].net_roi > 0 ? '#10b981' : '#ef4444' }}>
-                                    {batchResults[batch.id].net_roi > 0 ? '+' : ''}${batchResults[batch.id].net_roi}
-                                  </div>
-                                </div>
-                              </div>
-
-                              {batchResults[batch.id].details.map((drawResult: any, dIdx: number) => (
-                                <div key={dIdx} style={{ marginBottom: '1rem', paddingBottom: '1rem', borderBottom: dIdx === batchResults[batch.id].details.length - 1 ? 'none' : '1px dashed var(--border)' }}>
-                                  <div style={{ fontSize: '0.9rem', color: 'var(--text-muted)', marginBottom: '0.5rem' }}>
-                                    Draw Date: {(() => {
-                                      const [y, m, d] = drawResult.draw_date.split('T')[0].split('-');
-                                      return new Date(parseInt(y), parseInt(m) - 1, parseInt(d)).toLocaleDateString();
-                                    })()} | Winning Numbers: {drawResult.drawn_numbers.white_balls.join(', ')} {drawResult.drawn_numbers.special_ball !== null ? `[${drawResult.drawn_numbers.special_ball}]` : ''}
-                                  </div>
-                                  {drawResult.winning_tickets.length > 0 ? (
-                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', marginTop: '1rem' }}>
-                                      {drawResult.winning_tickets.map((wt: any, wIdx: number) => {
-                                        const isPick = batch.game_name.startsWith('Pick');
-                                        return (
-                                          <div key={wIdx} style={{ display: 'flex', alignItems: 'center', gap: '1rem', background: 'rgba(16, 185, 129, 0.1)', padding: '0.75rem', borderRadius: '6px', border: '1px solid rgba(16, 185, 129, 0.3)', flexWrap: 'wrap' }}>
-                                            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem', minWidth: '130px' }}>
-                                              <div style={{ color: '#10b981', fontWeight: 'bold', fontSize: '1rem' }}>
-                                                ✓ Won ${wt.prize}
-                                              </div>
-                                              <div style={{ color: 'var(--text-muted)', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                                                Matched {wt.matches.white} {wt.special_ball !== null ? (wt.matches.special ? '+ 1' : '+ 0') : ''}
-                                              </div>
-                                            </div>
-                                            <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-                                              {wt.white_balls.map((w: number, i: number) => {
-                                                const isMatch = isPick 
-                                                  ? w === drawResult.drawn_numbers.white_balls[i] 
-                                                  : drawResult.drawn_numbers.white_balls.includes(w);
-                                                return (
-                                                  <span key={i} style={{ 
-                                                    width: '28px', height: '28px', display: 'flex', alignItems: 'center', justifyContent: 'center', 
-                                                    background: isMatch ? '#10b981' : 'var(--panel-bg)', 
-                                                    color: isMatch ? 'white' : 'var(--text-muted)', 
-                                                    borderRadius: '50%', fontWeight: 'bold', fontSize: '0.85rem',
-                                                    border: isMatch ? 'none' : '1px solid var(--border)'
-                                                  }}>
-                                                    {w.toString().padStart(2, '0')}
-                                                  </span>
-                                                );
-                                              })}
-                                              {wt.special_ball !== null && (
-                                                <span style={{ 
-                                                  width: '28px', height: '28px', display: 'flex', alignItems: 'center', justifyContent: 'center', 
-                                                  background: wt.matches.special ? '#10b981' : 'var(--panel-bg)', 
-                                                  color: wt.matches.special ? 'white' : 'var(--text-muted)', 
-                                                  borderRadius: '50%', fontWeight: 'bold', fontSize: '0.85rem', marginLeft: '0.5rem',
-                                                  border: wt.matches.special ? 'none' : '1px solid var(--border)'
-                                                }}>
-                                                  {wt.special_ball.toString().padStart(2, '0')}
-                                                </span>
-                                              )}
-                                            </div>
-                                          </div>
-                                        );
-                                      })}
-                                    </div>
-                                  ) : (
-                                    <div style={{ color: 'var(--text-muted)', fontSize: '0.95rem' }}>No winning tickets for this draw.</div>
-                                  )}
-                                </div>
-                              ))}
-                            </div>
-                          )}
+                          <div style={{ display: 'flex', gap: '2rem', marginBottom: '1.5rem' }}>
+                            <div><div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>Draws</div><div style={{ fontSize: '1.2rem', fontWeight: 'bold' }}>{batchResults[batch.id].draws_checked}</div></div>
+                            <div><div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>Spent</div><div style={{ fontSize: '1.2rem', fontWeight: 'bold', color: '#ef4444' }}>${batchResults[batch.id].total_spent}</div></div>
+                            <div><div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>Won</div><div style={{ fontSize: '1.2rem', fontWeight: 'bold', color: '#10b981' }}>${batchResults[batch.id].total_won}</div></div>
+                            <div><div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>Net</div><div style={{ fontSize: '1.2rem', fontWeight: 'bold', color: batchResults[batch.id].net_roi > 0 ? '#10b981' : '#ef4444' }}>${batchResults[batch.id].net_roi}</div></div>
+                          </div>
                         </div>
                       )}
 
-                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '1rem' }}>
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '1rem' }}>
                         {batch.tickets.map((t: any) => (
                           <div key={t.id} style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', padding: '0.75rem', background: 'var(--panel-bg)', borderRadius: '6px', border: '1px solid var(--border)' }}>
                             {t.white_balls.map((w: number, i: number) => (
-                              <span key={i} style={{ width: '32px', height: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--ball-bg)', color: 'var(--ball-text)', borderRadius: '50%', fontWeight: 'bold', fontSize: '0.9rem' }}>
+                              <span key={i} style={{ width: '28px', height: '28px', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--ball-bg)', color: 'var(--ball-text)', borderRadius: '50%', fontWeight: 'bold', fontSize: '0.75rem' }}>
                                 {w.toString().padStart(2, '0')}
                               </span>
                             ))}
                             {t.special_ball !== null && (
-                              <span style={{ width: '32px', height: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--special-ball-bg)', color: 'white', borderRadius: '50%', fontWeight: 'bold', fontSize: '0.9rem', marginLeft: 'auto' }}>
+                              <span style={{ width: '28px', height: '28px', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--special-ball-bg)', color: 'white', borderRadius: '50%', fontWeight: 'bold', fontSize: '0.75rem', marginLeft: 'auto' }}>
                                 {t.special_ball.toString().padStart(2, '0')}
                               </span>
                             )}
                           </div>
                         ))}
                       </div>
-
                     </div>
                   )}
-
                 </div>
               ))}
             </div>
           )}
         </section>
 
-        {/* JMc - [2026-04-01] - Final Call to Action for Free Tier */}
+        {/* Pro Tier: Hide Math Reality behind Vault */}
+        {tier === 'pro' && (
+           <div style={{ marginTop: '5rem', opacity: 0.5 }}>
+              <MathRealitySection />
+           </div>
+        )}
+
         {tier === 'free' && (
-          <section style={{ marginTop: '4rem', padding: '3rem', background: 'linear-gradient(135deg, var(--panel-bg) 0%, #1e3a8a 100%)', borderRadius: '16px', border: '1px solid var(--accent)', textAlign: 'center', boxShadow: '0 10px 30px rgba(0,0,0,0.3)' }}>
-            <h2 style={{ fontSize: '2rem', marginBottom: '1rem', color: 'white' }}>The standard terminal is a window; the Pro Tier is a supercomputer.</h2>
-            <p style={{ fontSize: '1.2rem', color: 'var(--text-main)', opacity: '0.9', maxWidth: '700px', margin: '0 auto 2.5rem' }}>
-              Unlock high-volume coverage, advanced Markov dashboards, and 50 tickets per generation. Stop watching the map and start driving the vehicle.
-            </p>
-            <button 
-              onClick={handleUpgrade}
-              className="btn-primary" 
-              style={{ fontSize: '1.2rem', padding: '1rem 3rem', boxShadow: '0 0 20px rgba(59, 130, 246, 0.5)', letterSpacing: '1px' }}
-            >
-              ELEVATE TO PRO TIER
-            </button>
+          <section style={{ marginTop: '4rem', padding: '3rem', background: 'linear-gradient(135deg, var(--panel-bg) 0%, #1e3a8a 100%)', borderRadius: '16px', border: '1px solid var(--accent)', textAlign: 'center' }}>
+            <h2 style={{ fontSize: '1.5rem', color: 'white' }}>Standard Terminal: Limit 5 Tickets</h2>
+            <p style={{ marginBottom: '2rem' }}>Elevate to Pro for 50 tickets per generation and advanced Markov matrices.</p>
+            <button onClick={handleUpgrade} className="btn-primary">ELEVATE TO PRO TIER</button>
           </section>
         )}
       </main>

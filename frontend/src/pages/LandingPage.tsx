@@ -20,6 +20,7 @@ interface JackpotData {
   [game: string]: {
     jackpot: string;
     next_draw: string;
+    state?: string;
   }
 }
 
@@ -48,16 +49,41 @@ const API_BASE = import.meta.env.VITE_API_URL || '';
 
 const LandingPage = () => {
   const [jackpots, setJackpots] = useState<JackpotData | null>(null);
+  const [allGames, setAllGames] = useState<{id: string, name: string, state: string}[]>([]);
+  const [recentDraws, setRecentDraws] = useState<Record<string, any>>({});
 
   useEffect(() => {
-    // JMc - [2026-04-01] - Trigger Mermaid re-render on mount.
+    // JMc - [2026-04-01] - Trigger Mermaid re-render.
     mermaid.contentLoaded();
 
-    // JMc - [2026-03-16] - Fetch live unauthenticated jackpots from the scraper for the marketing display.
-    fetch(`${API_BASE}/api/jackpots`)
+    const ts = new Date().getTime();
+    
+    // Fetch Global Game Roster for Ticker
+    fetch(`${API_BASE}/api/games?_t=${ts}`)
+      .then(res => res.json())
+      .then(data => {
+        if (data.games_full) {
+          setAllGames(data.games_full);
+          // Fetch historical artifacts for the ticker balls
+          data.games_full.forEach((g: any) => {
+             fetch(`${API_BASE}/api/history/${g.id}?limit=1&_t=${ts}`)
+              .then(res => res.json())
+              .then(history => {
+                if (history && history.length > 0) {
+                  setRecentDraws(prev => ({...prev, [g.id]: history[0]}));
+                }
+              })
+              .catch(err => console.error(`Failed history for ${g.id}`));
+          });
+        }
+      })
+      .catch(err => console.error("Failed games load"));
+
+    // Fetch live unauthenticated jackpots
+    fetch(`${API_BASE}/api/jackpots?_t=${ts}`)
       .then(res => res.json())
       .then(data => setJackpots(data))
-      .catch(err => console.error("Failed to load jackpots", err));
+      .catch(err => console.error("Failed jackpots load"));
   }, []);
 
   return (
@@ -77,49 +103,47 @@ const LandingPage = () => {
         </p>
       </header>
 
-      <section className="jackpot-section" style={{ padding: '4rem 0' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2.5rem', flexWrap: 'wrap', gap: '1rem' }}>
-          <h2 style={{ margin: 0, fontSize: '2rem' }}>Current Market Scopes</h2>
-          <div style={{ fontSize: '0.9rem', color: '#38bdf8', fontWeight: 'bold', background: 'rgba(56, 189, 248, 0.1)', padding: '0.5rem 1.25rem', borderRadius: '20px', border: '1px solid rgba(56, 189, 248, 0.2)', letterSpacing: '0.5px' }}>
-            SYSTEM EXPANSION: NEW MATRICES ADDED WEEKLY
+      <section className="jackpot-section" style={{ padding: '2rem 0 4rem 0' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', flexWrap: 'wrap', gap: '1rem' }}>
+          <h2 style={{ margin: 0, fontSize: '0.9rem', textTransform: 'uppercase', letterSpacing: '2px', color: 'var(--text-muted)' }}>Global Pulse Ticker</h2>
+          <div style={{ fontSize: '0.75rem', color: '#38bdf8', fontWeight: 'bold' }}>
+            SYSTEM ONLINE • MATRICES EXPANDING WEEKLY
           </div>
         </div>
         
-        <div className="jackpot-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '1.5rem' }}>
-          {[
-            { id: 'Powerball', name: 'Powerball', state: 'National' },
-            { id: 'MegaMillions', name: 'Mega Millions', state: 'National' },
-            { id: 'VirginiaCash5', name: 'Cash 5', state: 'Virginia' },
-            { id: 'TexasCashFive', name: 'Cash Five', state: 'Texas' },
-            { id: 'NewYorkLotto', name: 'Lotto', state: 'New York' },
-            { id: 'TexasPick3', name: 'Pick 3', state: 'Texas' },
-            { id: 'VirginiaPick3', name: 'Pick 3', state: 'Virginia' }
-          ].map(game => (
-            <div key={game.id} className="jackpot-card" style={{ background: 'var(--panel-bg)', padding: '1.5rem', borderRadius: '12px', border: '1px solid var(--border)', position: 'relative', overflow: 'hidden' }}>
-              <div style={{ fontSize: '0.7rem', color: 'var(--accent)', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '0.5rem' }}>
-                {game.state}
+        <div className="ticker-container">
+          {(allGames.length > 0 ? allGames : [
+            {id: 'Powerball', name: 'Powerball', state: 'National'},
+            {id: 'MegaMillions', name: 'Mega Millions', state: 'National'},
+            {id: 'VirginiaCash5', name: 'Cash 5', state: 'Virginia'}
+          ]).map(game => (
+            <div key={game.id} className="ticker-card" style={{ minWidth: '260px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.5rem' }}>
+                <span style={{ fontSize: '0.65rem', color: 'var(--accent)', fontWeight: 'bold', textTransform: 'uppercase' }}>{game.state}</span>
+                <span style={{ fontSize: '0.6rem', color: 'var(--text-muted)' }}>{recentDraws[game.id] ? recentDraws[game.id].date : ''}</span>
               </div>
-              <h3 style={{ margin: '0 0 1rem 0', fontSize: '1.2rem', color: 'white' }}>{game.name}</h3>
-              {jackpots && jackpots[game.id] ? (
-                <>
-                  <div className="amount" style={{ fontSize: '2.2rem', fontWeight: 'bold', color: 'var(--text-main)', lineHeight: '1.1', marginBottom: '0.5rem' }}>
-                    {jackpots[game.id].jackpot}
-                  </div>
-                  <div className="draw-date" style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>
-                    Next Draw: {jackpots[game.id].next_draw}
-                  </div>
-                </>
-              ) : (
-                <div className="loading-skeleton" style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>
-                  {jackpots ? 'Matrix Offline' : 'Fetching Live Data...'}
+              <div style={{ fontSize: '1rem', fontWeight: 'bold', marginBottom: '0.25rem', color: 'white' }}>{game.name}</div>
+              <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: 'var(--text-main)', marginBottom: '0.75rem' }}>
+                {jackpots?.[game.id]?.jackpot || 'Syncing...'}
+              </div>
+              {recentDraws[game.id] && (
+                <div style={{ display: 'flex', gap: '0.3rem' }}>
+                   {recentDraws[game.id].white_balls.slice(0, 5).map((w: number, i: number) => (
+                     <span key={i} style={{ width: '22px', height: '22px', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--ball-bg)', color: 'var(--ball-text)', borderRadius: '50%', fontWeight: 'bold', fontSize: '0.7rem' }}>
+                       {w.toString().padStart(2, '0')}
+                     </span>
+                   ))}
+                   {recentDraws[game.id].special_ball !== null && (
+                     <span style={{ width: '22px', height: '22px', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--special-ball-bg)', color: 'white', borderRadius: '50%', fontWeight: 'bold', fontSize: '0.7rem' }}>
+                       {recentDraws[game.id].special_ball.toString().padStart(2, '0')}
+                     </span>
+                   )}
                 </div>
               )}
-              {/* Subtle accent line */}
-              <div style={{ position: 'absolute', bottom: 0, left: 0, width: '100%', height: '3px', background: 'linear-gradient(90deg, transparent, var(--accent), transparent)', opacity: 0.3 }}></div>
             </div>
           ))}
         </div>
-        <p style={{ marginTop: '2rem', fontSize: '0.9rem', color: 'var(--text-muted)', textAlign: 'center', fontStyle: 'italic' }}>
+        <p style={{ marginTop: '1rem', fontSize: '0.85rem', color: 'var(--text-muted)', textAlign: 'center', fontStyle: 'italic' }}>
           * Currently analyzing high-volume pools in VA, TX, and NY. California and Florida matrices are currently being calibrated.
         </p>
       </section>
