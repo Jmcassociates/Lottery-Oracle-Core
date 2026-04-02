@@ -77,39 +77,51 @@ const LandingPage = () => {
         </p>
       </header>
 
-      <section className="jackpot-section">
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem', flexWrap: 'wrap', gap: '1rem' }}>
-          <h2 style={{ margin: 0 }}>Current Opportunities</h2>
-          <div style={{ fontSize: '0.9rem', color: '#38bdf8', fontWeight: 'bold', background: 'rgba(56, 189, 248, 0.1)', padding: '0.5rem 1rem', borderRadius: '20px', border: '1px solid rgba(56, 189, 248, 0.2)' }}>
-            System Expansion: New state-level matrices added weekly
+      <section className="jackpot-section" style={{ padding: '4rem 0' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2.5rem', flexWrap: 'wrap', gap: '1rem' }}>
+          <h2 style={{ margin: 0, fontSize: '2rem' }}>Current Market Scopes</h2>
+          <div style={{ fontSize: '0.9rem', color: '#38bdf8', fontWeight: 'bold', background: 'rgba(56, 189, 248, 0.1)', padding: '0.5rem 1.25rem', borderRadius: '20px', border: '1px solid rgba(56, 189, 248, 0.2)', letterSpacing: '0.5px' }}>
+            SYSTEM EXPANSION: NEW MATRICES ADDED WEEKLY
           </div>
         </div>
-        <div className="jackpot-grid" style={{ flexWrap: 'wrap' }}>
-          {['Powerball', 'MegaMillions', 'Cash4Life', 'VirginiaCash5', 'TexasCashFive', 'NewYorkLotto'].map(game => (
-            <div key={game} className="jackpot-card" style={{ minWidth: '250px', marginBottom: '1rem' }}>
-              <h3>{
-                game === 'MegaMillions' ? 'Mega Millions' : 
-                game === 'Cash4Life' ? 'Cash 4 Life' :
-                game === 'VirginiaCash5' ? 'Virginia Cash 5' :
-                game === 'TexasCashFive' ? 'Texas Cash 5' :
-                game === 'NewYorkLotto' ? 'New York Lotto' :
-                game.replace('Pick', 'Pick ')
-              }</h3>
-              {jackpots ? (
+        
+        <div className="jackpot-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '1.5rem' }}>
+          {[
+            { id: 'Powerball', name: 'Powerball', state: 'National' },
+            { id: 'MegaMillions', name: 'Mega Millions', state: 'National' },
+            { id: 'VirginiaCash5', name: 'Cash 5', state: 'Virginia' },
+            { id: 'TexasCashFive', name: 'Cash Five', state: 'Texas' },
+            { id: 'NewYorkLotto', name: 'Lotto', state: 'New York' },
+            { id: 'TexasPick3', name: 'Pick 3', state: 'Texas' },
+            { id: 'VirginiaPick3', name: 'Pick 3', state: 'Virginia' }
+          ].map(game => (
+            <div key={game.id} className="jackpot-card" style={{ background: 'var(--panel-bg)', padding: '1.5rem', borderRadius: '12px', border: '1px solid var(--border)', position: 'relative', overflow: 'hidden' }}>
+              <div style={{ fontSize: '0.7rem', color: 'var(--accent)', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '0.5rem' }}>
+                {game.state}
+              </div>
+              <h3 style={{ margin: '0 0 1rem 0', fontSize: '1.2rem', color: 'white' }}>{game.name}</h3>
+              {jackpots && jackpots[game.id] ? (
                 <>
-                  <div className="amount" style={{ fontSize: game.startsWith('Pick') ? '1.5rem' : '2rem' }}>
-                    {jackpots[game]?.jackpot || (game.startsWith('Pick') ? '$500 - $50,000' : 'Pending...')}
+                  <div className="amount" style={{ fontSize: '2.2rem', fontWeight: 'bold', color: 'var(--text-main)', lineHeight: '1.1', marginBottom: '0.5rem' }}>
+                    {jackpots[game.id].jackpot}
                   </div>
-                  <div className="draw-date">
-                    {jackpots[game]?.next_draw || (game.startsWith('Pick') ? 'Draws Twice Daily' : 'Pending...')}
+                  <div className="draw-date" style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>
+                    Next Draw: {jackpots[game.id].next_draw}
                   </div>
                 </>
               ) : (
-                <div className="loading-skeleton">Loading API data...</div>
+                <div className="loading-skeleton" style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>
+                  {jackpots ? 'Matrix Offline' : 'Fetching Live Data...'}
+                </div>
               )}
+              {/* Subtle accent line */}
+              <div style={{ position: 'absolute', bottom: 0, left: 0, width: '100%', height: '3px', background: 'linear-gradient(90deg, transparent, var(--accent), transparent)', opacity: 0.3 }}></div>
             </div>
           ))}
         </div>
+        <p style={{ marginTop: '2rem', fontSize: '0.9rem', color: 'var(--text-muted)', textAlign: 'center', fontStyle: 'italic' }}>
+          * Currently analyzing high-volume pools in VA, TX, and NY. California and Florida matrices are currently being calibrated.
+        </p>
       </section>
 
       <section className="chart-section">
