@@ -37,10 +37,38 @@ import threading
 limiter = Limiter(key_func=get_remote_address)
 
 
+# JMc - [2026-04-01] - Pre-boot cleanup to clear stale locks
+def run_preboot_cleanup():
+    db_gen = get_db()
+    db = next(db_gen)
+    try:
+        # Clear any "ghost" sync logs that were left in IMPORTING state
+        # after a server crash or deployment interruption.
+        ten_mins_ago = datetime.utcnow() - timedelta(minutes=10)
+        stale_syncs = db.query(SyncLog).filter(
+            SyncLog.status == "IMPORTING",
+            SyncLog.executed_at < ten_mins_ago
+        ).all()
+        
+        for s in stale_syncs:
+            s.status = "FAILED"
+            s.error_message = "Protocol Interrupted: Server reboot or timeout."
+        
+        if stale_syncs:
+            db.commit()
+            logger.info(f"Oracle - Bootup - Purged {len(stale_syncs)} stale sync records.")
+    except Exception as e:
+        logger.error(f"Oracle - Bootup - Pre-boot cleanup failed: {e}")
+    finally:
+        db.close()
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # JMc - [2026-03-31] - Temporarily disabled boot-time migration due to DB connection exhaustion.
     # Migration is still triggered inside run_sync_task().
+    # JMc - [2026-04-01] - Cleanup stale sync logs to clear UI locks.
+    run_preboot_cleanup()
     yield
 
 
