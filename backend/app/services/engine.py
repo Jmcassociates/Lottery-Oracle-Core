@@ -1,4 +1,5 @@
 import itertools
+import random
 from collections import defaultdict, Counter
 
 class PatternScouter:
@@ -216,8 +217,20 @@ class LotteryMathEngine:
         JMc - [2026-03-16] - The Pragmatist Algorithm.
         Applies Greedy Combinatorial Wheeling to guarantee maximum unique triplet coverage
         with zero redundant mathematical overlap, filtered by the PatternScouter.
+        
+        JMc - [2026-04-03] - Controlled Entropy Injection.
+        Shuffles the initial permutation array to ensure every generation request
+        yields a mathematically unique batch, preventing "Syndicate Clustering."
         """
         all_possible_tickets = list(itertools.combinations(pool, self.numbers_per_ticket))
+        
+        # Inject Entropy: Shuffle the list so the "Greedy" algorithm starts from a random point
+        # every time it is called, ensuring unique batches for every user.
+        random.shuffle(all_possible_tickets)
+        
+        # Shuffle the special pool independently to decouple the matrix mapping
+        if special_pool:
+            random.shuffle(special_pool)
         
         covered_triplets = set()
         selected_tickets = []
