@@ -1,5 +1,10 @@
 # Project Progress: Lottery Oracle Dashboard
 
+### 2026-04-01 21:45 EDT - Phase 17: Visual Hardening & High-Contrast Stabilization
+- **Contrast Restoration:** Purged the `opacity: 0.5` limitation from the Pro-tier Mathematical Reality section. Updated typography to high-contrast `#e2e8f0` and `#white` palettes for better legibility on high-resolution displays.
+- **Robust Rendering Engine:** Replaced the fragile `mermaid.run()` implementation with an asynchronous `MermaidDiagram` React component. This ensures the architecture flow is rendered correctly by managing its own SVG generation lifecycle.
+- **Ergonomic Finalization:** Relocated the Mathematical Reality section below the Vault for Pro users to maintain a "Veteran First" workflow while ensuring the technical documentation remains accessible.
+
 ### 2026-04-01 21:30 EDT - Phase 16: Mermaid Visualization Stabilization
 - **Force-Render Protocol:** Resolved the "Ghost Diagram" bug where raw Mermaid code was visible instead of rendered graphs. Implemented an explicit `mermaid.run()` trigger inside a React `useEffect` with a settled-DOM timeout.
 - **Cross-Sector Fix:** Applied the stabilization fix to both the public Landing Page and the internal Oracle Command Terminal to ensure consistent architectural transparency.

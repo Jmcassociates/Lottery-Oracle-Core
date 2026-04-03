@@ -7,12 +7,7 @@ mermaid.initialize({
   startOnLoad: false,
   theme: 'dark',
   securityLevel: 'loose',
-  fontFamily: 'Segoe UI, system-ui, sans-serif',
-  themeVariables: {
-    primaryColor: '#3b82f6',
-    edgeLabelBackground: '#1e293b',
-    tertiaryColor: '#1e293b'
-  }
+  fontFamily: 'Segoe UI, system-ui, sans-serif'
 });
 
 const API_BASE = import.meta.env.VITE_API_URL || '';
@@ -31,12 +26,14 @@ const MermaidDiagram = ({ chart }: { chart: string }) => {
 
   useEffect(() => {
     if (ref.current) {
+      // Clear previous processing
       ref.current.removeAttribute('data-processed');
-      mermaid.contentLoaded();
-      // Force an explicit render pass
+      ref.current.innerHTML = ''; 
+      
       const renderChart = async () => {
         try {
-          const { svg } = await mermaid.render(`mermaid-${Math.random().toString(36).substr(2, 9)}`, chart);
+          const id = `mermaid-${Math.random().toString(36).substr(2, 9)}`;
+          const { svg } = await mermaid.render(id, chart);
           if (ref.current) ref.current.innerHTML = svg;
         } catch (e) {
           console.error("Mermaid Render Error:", e);
@@ -46,7 +43,7 @@ const MermaidDiagram = ({ chart }: { chart: string }) => {
     }
   }, [chart]);
 
-  return <div ref={ref} className="mermaid" style={{ display: 'flex', justifyContent: 'center', width: '100%' }} />;
+  return <div ref={ref} className="mermaid-render" style={{ display: 'flex', justifyContent: 'center', width: '100%', minHeight: '300px' }} />;
 };
 
 const Dashboard = () => {
@@ -71,16 +68,13 @@ const Dashboard = () => {
   const [numTickets, setNumTickets] = useState<number>(tier === 'pro' ? 20 : 5);
 
   useEffect(() => {
-    // Fetch available states
     const ts = new Date().getTime();
     fetch(`${API_BASE}/api/states?_t=${ts}`)
       .then(res => res.json())
       .then(data => {
         if (data.states && data.states.length > 0) {
           setStatesList(data.states);
-          if (!data.states.includes(selectedState)) {
-             setSelectedState(data.states[0]);
-          }
+          if (!data.states.includes(selectedState)) setSelectedState(data.states[0]);
         }
       })
       .catch(err => console.error("Failed to load states:", err));
@@ -97,9 +91,7 @@ const Dashboard = () => {
              fetchWithAuth(`/api/history/${g.id}?limit=1&_t=${ts}`)
               .then(res => res.json())
               .then(history => {
-                if (history && history.length > 0) {
-                  setRecentDraws(prev => ({...prev, [g.id]: history[0]}));
-                }
+                if (history && history.length > 0) setRecentDraws(prev => ({...prev, [g.id]: history[0]}));
               })
               .catch(err => console.error(`Failed history for ${g.id}:`, err));
           });
@@ -131,7 +123,7 @@ const Dashboard = () => {
     try {
       const res = await fetchWithAuth('/api/my-tickets');
       if (res.ok) setSavedBatches(await res.json());
-    } catch (e) { console.error("Failed vault load"); }
+    } catch (e) { console.error("Failed vault load:", e); }
   };
 
   const handleUpgrade = () => {
@@ -159,7 +151,7 @@ const Dashboard = () => {
         const data = await res.json();
         setBatchResults(prev => ({ ...prev, [batchId]: data }));
       }
-    } catch (e) { console.error("Failed check"); } finally { setCheckingBatch(null); }
+    } catch (e) { console.error("Failed check:", e); } finally { setCheckingBatch(null); }
   };
 
   const deleteBatch = async (batchId: number) => {
@@ -170,7 +162,7 @@ const Dashboard = () => {
         setSavedBatches(prev => prev.filter(b => b.id !== batchId));
         setExpandedBatch(null);
       }
-    } catch (e) { console.error("Failed delete"); }
+    } catch (e) { console.error("Failed delete:", e); }
   };
 
   const exportBatch = async (batchId: number, gameName: string) => {
@@ -186,39 +178,39 @@ const Dashboard = () => {
         document.body.appendChild(a);
         a.click(); a.remove(); window.URL.revokeObjectURL(url);
       }
-    } catch (e) { console.error("Failed export"); }
+    } catch (e) { console.error("Failed export:", e); }
   };
 
   const MathRealitySection = () => (
-    <section style={{ marginBottom: '4rem', padding: '2.5rem', background: 'rgba(30, 41, 59, 0.7)', borderRadius: '16px', border: '1px solid var(--border)', boxShadow: '0 4px 20px rgba(0,0,0,0.4)' }}>
-      <h2 style={{ fontSize: '2rem', color: 'white', marginBottom: '1.5rem', borderBottom: '2px solid var(--accent)', paddingBottom: '0.75rem', display: 'inline-block' }}>
+    <section style={{ marginBottom: '4rem', padding: '2.5rem', background: 'rgba(30, 41, 59, 0.9)', borderRadius: '16px', border: '1px solid var(--border)', boxShadow: '0 8px 32px rgba(0,0,0,0.6)' }}>
+      <h2 style={{ fontSize: '2rem', color: '#ffffff', marginBottom: '1.5rem', borderBottom: '2px solid var(--accent)', paddingBottom: '0.75rem', display: 'inline-block' }}>
         The Mathematical Reality: Organizing the Variance
       </h2>
-      <p style={{ fontSize: '1.15rem', color: '#e2e8f0', lineHeight: '1.7', marginBottom: '2.5rem' }}>
+      <p style={{ fontSize: '1.2rem', color: '#f1f5f9', lineHeight: '1.7', marginBottom: '2.5rem' }}>
         The Oracle doesn't predict the future; it <strong>organizes the variance</strong>. Every draw is an independent event, and the ping-pong balls do not have memory. We don't ask for "lucky numbers"; we apply raw empirical data to a game of pure, brutal mathematical variance.
       </p>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '2rem', marginBottom: '3.5rem' }}>
         <div style={{ padding: '1.75rem', background: 'var(--panel-bg)', borderRadius: '12px', borderLeft: '4px solid var(--accent)' }}>
-          <h3 style={{ color: 'var(--accent)', marginTop: 0, fontSize: '1.25rem' }}>01. The Prophet</h3>
-          <p style={{ fontSize: '1rem', color: '#cbd5e1', lineHeight: '1.5' }}>
+          <h3 style={{ color: '#ffffff', marginTop: 0, fontSize: '1.25rem' }}>01. The Prophet</h3>
+          <p style={{ fontSize: '1rem', color: '#e2e8f0', lineHeight: '1.5' }}>
             <strong>Autonomous Seeding:</strong> Scans a decade of historical data using <strong>Markov Chains</strong> (40%), <strong>Poisson Distribution</strong> (40%), and <strong>Base Frequency</strong> (20%) to build a high-tension 15-number Smart Pool.
           </p>
         </div>
         <div style={{ padding: '1.75rem', background: 'var(--panel-bg)', borderRadius: '12px', borderLeft: '4px solid #8b5cf6' }}>
-          <h3 style={{ color: '#8b5cf6', marginTop: 0, fontSize: '1.25rem' }}>02. The Pragmatist</h3>
-          <p style={{ fontSize: '1rem', color: '#cbd5e1', lineHeight: '1.5' }}>
+          <h3 style={{ color: '#ffffff', marginTop: 0, fontSize: '1.25rem' }}>02. The Pragmatist</h3>
+          <p style={{ fontSize: '1rem', color: '#e2e8f0', lineHeight: '1.5' }}>
             <strong>Combinatorial Wheeling:</strong> Takes the Smart Pool and establishes maximum coverage across 3,003 possible variations, prioritizing 3-number triplets to ensure structural integrity in every batch.
           </p>
         </div>
         <div style={{ padding: '1.75rem', background: 'var(--panel-bg)', borderRadius: '12px', borderLeft: '4px solid #10b981' }}>
-          <h3 style={{ color: '#10b981', marginTop: 0, fontSize: '1.25rem' }}>03. The Pattern Scouter</h3>
-          <p style={{ fontSize: '1rem', color: '#cbd5e1', lineHeight: '1.5' }}>
+          <h3 style={{ color: '#ffffff', marginTop: 0, fontSize: '1.25rem' }}>03. The Pattern Scouter</h3>
+          <p style={{ fontSize: '1rem', color: '#e2e8f0', lineHeight: '1.5' }}>
             <strong>The Purge:</strong> Enforces strict geometric filters. We reject odd/even outliers, spatial spread traps, consecutive sequences, and historical jackpot collisions.
           </p>
         </div>
       </div>
       <div style={{ padding: '2.5rem', background: '#020617', borderRadius: '16px', border: '1px solid var(--border)' }}>
-        <h4 style={{ textAlign: 'center', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '2px', marginBottom: '2rem', fontSize: '0.85rem' }}>
+        <h4 style={{ textAlign: 'center', color: '#ffffff', textTransform: 'uppercase', letterSpacing: '2px', marginBottom: '2.5rem', fontSize: '0.9rem', fontWeight: 'bold' }}>
           Autonomous Architecture Flow
         </h4>
         <MermaidDiagram chart={`graph TD
@@ -257,9 +249,7 @@ const Dashboard = () => {
           <p className="subtitle">Tier Protocol: <span style={{ color: 'var(--accent)', textTransform: 'uppercase' }}>{tier}</span></p>
         </div>
         <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
-          <select
-            value={selectedState}
-            onChange={(e) => setSelectedState(e.target.value)}
+          <select value={selectedState} onChange={(e) => setSelectedState(e.target.value)}
             style={{ padding: '0.5rem', borderRadius: '4px', background: 'var(--panel-bg)', color: 'var(--text-main)', border: '1px solid var(--border)' }}
           >
             {statesList.map(st => (
@@ -271,7 +261,6 @@ const Dashboard = () => {
       </header>
 
       <main>
-        {/* JMc - [2026-04-01] - Global Pulse Ticker */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
            <h2 style={{ margin: 0, fontSize: '0.9rem', textTransform: 'uppercase', letterSpacing: '1px', color: 'var(--text-muted)' }}>Global Pulse Ticker</h2>
            <span style={{ fontSize: '0.75rem', color: 'var(--accent)', fontWeight: 'bold' }}>SYSTEM ONLINE • MATRICES EXPANDING WEEKLY</span>
@@ -318,6 +307,12 @@ const Dashboard = () => {
           </div>
         </section>
 
+        {error && (
+          <div style={{ background: 'rgba(239, 68, 68, 0.1)', color: '#ef4444', padding: '1rem', borderRadius: '8px', marginBottom: '2rem', border: '1px solid #ef4444' }}>
+            <strong>System Halt:</strong> {error}
+          </div>
+        )}
+
         {tier !== 'pro' && <MathRealitySection />}
 
         {tickets.length > 0 && (
@@ -358,6 +353,18 @@ const Dashboard = () => {
                           <button onClick={() => checkBatch(batch.id)} disabled={checkingBatch === batch.id} className="btn-primary">Run Reality Check</button>
                         </div>
                       </div>
+                      
+                      {batchResults[batch.id] && (
+                        <div style={{ marginBottom: '2rem', padding: '1.5rem', borderRadius: '8px', background: 'var(--bg-color)', border: '1px solid var(--border)' }}>
+                          <h3 style={{ marginTop: 0 }}>Reality Check Report</h3>
+                          <div style={{ display: 'flex', gap: '2rem' }}>
+                            <div><div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>Spent</div><div style={{ fontSize: '1.2rem', color: '#ef4444' }}>${batchResults[batch.id].total_spent}</div></div>
+                            <div><div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>Won</div><div style={{ fontSize: '1.2rem', color: '#10b981' }}>${batchResults[batch.id].total_won}</div></div>
+                            <div><div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>Net ROI</div><div style={{ fontSize: '1.2rem', color: batchResults[batch.id].net_roi > 0 ? '#10b981' : '#ef4444' }}>${batchResults[batch.id].net_roi}</div></div>
+                          </div>
+                        </div>
+                      )}
+
                       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '1rem' }}>
                         {batch.tickets.map((t: any) => (
                           <div key={t.id} style={{ display: 'flex', gap: '0.5rem', padding: '0.75rem', background: 'var(--panel-bg)', borderRadius: '6px', border: '1px solid var(--border)' }}>
