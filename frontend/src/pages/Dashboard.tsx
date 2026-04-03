@@ -187,7 +187,7 @@ const Dashboard = () => {
         The Mathematical Reality: Organizing the Variance
       </h2>
       <p style={{ fontSize: '1.2rem', color: '#f1f5f9', lineHeight: '1.7', marginBottom: '2.5rem' }}>
-        The Oracle doesn't predict the future; it <strong>organizes the variance</strong>. Every draw is an independent event, and the ping-pong balls do not have memory. We don't ask for "lucky numbers"; we apply raw empirical data to a game of pure, brutal mathematical variance.
+        The Oracle doesn't predict the future; it <strong>organizes the variance</strong>. Every draw is an independent event, and the ping-pong balls do not have memory. We apply raw empirical data to a game of pure, brutal mathematical variance.
       </p>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '2rem', marginBottom: '3.5rem' }}>
         <div style={{ padding: '1.75rem', background: 'var(--panel-bg)', borderRadius: '12px', borderLeft: '4px solid var(--accent)' }}>
@@ -209,6 +209,21 @@ const Dashboard = () => {
           </p>
         </div>
       </div>
+
+      {/* JMc - [2026-04-03] - The Oracle Doctrine Integration */}
+      <div style={{ padding: '2rem', background: 'rgba(15, 23, 42, 0.8)', borderRadius: '12px', border: '1px solid #334155', marginBottom: '3.5rem' }}>
+        <h3 style={{ color: '#38bdf8', marginTop: 0, textTransform: 'uppercase', letterSpacing: '1px', fontSize: '1.1rem' }}>The Oracle Doctrine: The 15-Number Fulcrum</h3>
+        <p style={{ color: '#cbd5e1', fontSize: '1rem', lineHeight: '1.6' }}>
+          When wheeling a 15-number pool, permutations explode to <strong>3,003 combinations</strong>. Expanding to 20 numbers would require 15,504 variations—a six-figure budget for a single draw. The Oracle Doctrine ruthlessly restricts the 'Smart Pool' to 15 numbers to maintain the <strong>triplet guarantee</strong>: if 3 winning numbers fall anywhere in your 15-number pool, the Pragmatist ensures you hold at least one ticket with that match.
+        </p>
+        <div style={{ marginTop: '1.5rem', padding: '1.25rem', background: 'rgba(245, 158, 11, 0.1)', borderLeft: '4px solid #f59e0b', borderRadius: '4px' }}>
+          <strong style={{ color: '#f59e0b', display: 'block', marginBottom: '0.5rem' }}>CONTROLLED ENTROPY: THE INDIVIDUALIZED ORACLE</strong>
+          <p style={{ margin: 0, color: '#e2e8f0', fontSize: '0.95rem', fontStyle: 'italic' }}>
+            We do not run a syndicate. The Pragmatist dynamically shuffles the 3,003 base combinations <em>before</em> wheeling. Every user receives a mathematically vetted, high-coverage batch that is <strong>completely unique to their terminal.</strong>
+          </p>
+        </div>
+      </div>
+
       <div style={{ padding: '2.5rem', background: '#020617', borderRadius: '16px', border: '1px solid var(--border)' }}>
         <h4 style={{ textAlign: 'center', color: '#ffffff', textTransform: 'uppercase', letterSpacing: '2px', marginBottom: '2.5rem', fontSize: '0.9rem', fontWeight: 'bold' }}>
           Autonomous Architecture Flow

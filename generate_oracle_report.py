@@ -273,7 +273,35 @@ def generate_v8_final_manifesto():
     c.drawCentredString(width/2, y - 1.25*inch, "It cannot predict future events, only eliminate the 70% of reality that will never occur.")
     draw_footer(c, width, height, slate_grey); c.showPage()
 
-    # --- PAGE 6: THE COMMAND ---
+    # --- PAGE 6: THE ORACLE DOCTRINE ---
+    c.setFillColor(obsidian); c.rect(0, 0, width, height, fill=1)
+    draw_header(c, width, height, oracle_blue)
+    c.setFont("Helvetica-Bold", 20); c.setFillColor(cloud_white)
+    c.drawString(0.75*inch, height - 1.2*inch, "05. THE ORACLE DOCTRINE: THE 15-NUMBER FULCRUM")
+    
+    y = height - 1.6*inch
+    doctrine_copy = """
+    To understand the Oracle, you must understand the concept of <b>Combinatorial Tension</b> and why we restrict our autonomous engine to a ruthless 15-number 'Smart Pool.'<br/><br/>
+    <b>1. The Mathematical Abyss:</b> When you wheel a pool of 10 numbers, there are 252 possible combinations. At 15 numbers, it explodes to <b>3,003 combinations.</b> At 20 numbers, you are staring at <b>15,504 variations.</b> The Oracle is built for the individual technician, not the institution. We stop at 15 because it is the mathematical 'Sweet Spot' between statistical coverage and physical deployment reality.<br/><br/>
+    <b>2. The Triplet Strategy:</b> 15 numbers cover nearly 21% of a Powerball board. The Pragmatist engine mathematically sifts these 3,003 variations to ensure that <b>if 3 winning numbers fall anywhere in your pool, you hold at least one ticket with that match.</b><br/><br/>
+    <b>3. The Prophet's Filter:</b> Expanding to 20+ numbers drags in 'cold' inventory—balls that our Markov and Poisson models have flagged as low-probability. We force the algorithms to fight for their spot on the roster. Only the highest-tension assets survive the cut.
+    """
+    y = draw_paragraph(c, doctrine_copy, 0.75*inch, y, 7*inch, "Helvetica", 11, cloud_white)
+
+    # Entropy Box
+    c.setFillColor(midnight); c.setStrokeColor(gold); c.setLineWidth(1.5)
+    c.rect(1.0*inch, y - 2.2*inch, 6.5*inch, 1.8*inch, fill=1, stroke=1)
+    c.setFillColor(gold); c.setFont("Helvetica-Bold", 12)
+    c.drawString(1.25*inch, y - 0.8*inch, "CONTROLLED ENTROPY: THE INDIVIDUALIZED ORACLE")
+    
+    entropy_text = """
+    We do not run a syndicate. If 1,000 technicians hit the button at 8:00 PM, they should not all receive the exact same tickets. While the 15-number Smart Pool remains the empirical truth for that draw, the Pragmatist shuffles the matrix <i>before</i> wheeling. The result? A high-coverage batch that is <b>completely unique to your terminal.</b>
+    """
+    draw_paragraph(c, entropy_text, 1.25*inch, y - 1.0*inch, 6.0*inch, "Helvetica-Oblique", 10.5, cloud_white)
+    
+    draw_footer(c, width, height, slate_grey); c.showPage()
+
+    # --- PAGE 7: THE COMMAND ---
     c.setFillColor(obsidian); c.rect(0, 0, width, height, fill=1)
     draw_header(c, width, height, oracle_blue)
     
@@ -330,7 +358,7 @@ def generate_v8_final_manifesto():
     
     draw_footer(c, width, height, slate_grey); c.showPage()
     c.save()
-    print("Industrial Manifesto v8.6 generated: ORACLE_DEAD_ZONE_REPORT.pdf")
+    print("Industrial Manifesto v9.0 generated: ORACLE_DEAD_ZONE_REPORT.pdf")
 
 if __name__ == "__main__":
     generate_v8_final_manifesto()
