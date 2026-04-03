@@ -105,12 +105,8 @@ jobs:
     # ---------------------------------------------------------
     # FRONTEND DEPLOYMENT (React + Nginx Reverse Proxy)
     # ---------------------------------------------------------
-    # JMc - [2026-03-18] - We must dynamically inject the newly deployed Backend URL 
-    # into the Nginx configuration or Vite build step before deploying the frontend container.
-    - name: Inject Backend URL into Frontend Build
-      run: |
-        echo "VITE_API_URL=${{ steps.deploy-backend.outputs.url }}" > frontend/.env.production
-
+    # JMc - [2026-04-03] - Unified Gateway: Frontend now routes all /api traffic 
+    # through its own Nginx proxy. No need to inject VITE_API_URL.
     - name: Build and Push Frontend Image
       run: |-
         docker build -t "${GAR_LOCATION}/${FRONTEND_SERVICE_NAME}:${GITHUB_SHA}" -f frontend/Dockerfile .
