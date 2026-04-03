@@ -288,32 +288,35 @@ const Dashboard = () => {
            <span style={{ fontSize: '0.75rem', color: 'var(--accent)', fontWeight: 'bold' }}>SYSTEM ONLINE • MATRICES EXPANDING WEEKLY</span>
         </div>
         <div className="ticker-container">
-          {(allGames.length > 0 ? allGames : [{id: 'Powerball', name: 'Powerball', state: 'National'}, {id: 'MegaMillions', name: 'Mega Millions', state: 'National'}]).map(game => (
-            <div key={game.id} className="ticker-card">
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.5rem' }}>
-                <span style={{ fontSize: '0.65rem', color: 'var(--accent)', fontWeight: 'bold', textTransform: 'uppercase' }}>{game.state}</span>
-                <span style={{ fontSize: '0.6rem', color: 'var(--text-muted)' }}>{recentDraws[game.id] ? recentDraws[game.id].date : ''}</span>
-              </div>
-              <div style={{ fontSize: '0.9rem', fontWeight: 'bold', marginBottom: '0.25rem' }}>{game.name}</div>
-              <div style={{ fontSize: '1.2rem', fontWeight: 'bold', color: 'white', marginBottom: '0.5rem' }}>
-                {jackpots?.[game.id]?.jackpot || 'Syncing...'}
-              </div>
-              {recentDraws[game.id] && (
-                <div style={{ display: 'flex', gap: '0.25rem' }}>
-                   {recentDraws[game.id].white_balls.slice(0, 5).map((w: number, i: number) => (
-                     <span key={i} style={{ width: '18px', height: '18px', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--ball-bg)', color: 'var(--ball-text)', borderRadius: '50%', fontWeight: 'bold', fontSize: '0.6rem' }}>
-                       {w.toString().padStart(2, '0')}
-                     </span>
-                   ))}
-                   {recentDraws[game.id].special_ball !== null && (
-                     <span style={{ width: '18px', height: '18px', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--special-ball-bg)', color: 'white', borderRadius: '50%', fontWeight: 'bold', fontSize: '0.6rem' }}>
-                       {recentDraws[game.id].special_ball.toString().padStart(2, '0')}
-                     </span>
-                   )}
+          <div className="ticker-track">
+            {/* JMc - [2026-04-01] - Double the list for seamless looping */}
+            {[...(allGames.length > 0 ? allGames : [{id: 'Powerball', name: 'Powerball', state: 'National'}, {id: 'MegaMillions', name: 'Mega Millions', state: 'National'}]), ...(allGames.length > 0 ? allGames : [{id: 'Powerball', name: 'Powerball', state: 'National'}, {id: 'MegaMillions', name: 'Mega Millions', state: 'National'}])].map((game, idx) => (
+              <div key={`${game.id}-${idx}`} className="ticker-card">
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.5rem' }}>
+                  <span style={{ fontSize: '0.65rem', color: 'var(--accent)', fontWeight: 'bold', textTransform: 'uppercase' }}>{game.state}</span>
+                  <span style={{ fontSize: '0.6rem', color: 'var(--text-muted)' }}>{recentDraws[game.id] ? recentDraws[game.id].date : ''}</span>
                 </div>
-              )}
-            </div>
-          ))}
+                <div style={{ fontSize: '0.9rem', fontWeight: 'bold', marginBottom: '0.25rem' }}>{game.name}</div>
+                <div style={{ fontSize: '1.2rem', fontWeight: 'bold', color: 'white', marginBottom: '0.5rem' }}>
+                  {jackpots?.[game.id]?.jackpot || 'Syncing...'}
+                </div>
+                {recentDraws[game.id] && (
+                  <div style={{ display: 'flex', gap: '0.25rem' }}>
+                     {recentDraws[game.id].white_balls.slice(0, 5).map((w: number, i: number) => (
+                       <span key={i} style={{ width: '18px', height: '18px', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--ball-bg)', color: 'var(--ball-text)', borderRadius: '50%', fontWeight: 'bold', fontSize: '0.6rem' }}>
+                         {w.toString().padStart(2, '0')}
+                       </span>
+                     ))}
+                     {recentDraws[game.id].special_ball !== null && (
+                       <span style={{ width: '18px', height: '18px', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--special-ball-bg)', color: 'white', borderRadius: '50%', fontWeight: 'bold', fontSize: '0.6rem' }}>
+                         {recentDraws[game.id].special_ball.toString().padStart(2, '0')}
+                       </span>
+                     )}
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
         </div>
 
         <section className="control-panel">

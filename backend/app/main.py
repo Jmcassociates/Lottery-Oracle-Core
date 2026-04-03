@@ -209,12 +209,33 @@ def list_states():
     return {"states": states}
 
 @app.get("/api/games")
-def list_games(state: str = "VA"):
+def list_games(state: str = None):
     """
-    JMc - [2026-03-18] - Dynamically route games by state, plus national games.
+    JMc - [2026-03-18] - Dynamically route games by state.
+    JMc - [2026-04-01] - Support 'games_full' roster for Global Pulse Ticker.
     """
-    games = [k for k, v in GAMES.items() if v["state"] in ("NAT", state)]
-    return {"games": games}
+    if state:
+        games = [k for k, v in GAMES.items() if v["state"] in ("NAT", state)]
+        return {"games": games}
+    
+    # Return full roster with metadata for ticker
+    games_full = []
+    for k, v in GAMES.items():
+        state_label = "National" if v["state"] == "NAT" else v["state"]
+        if state_label == "VA": state_label = "Virginia"
+        if state_label == "TX": state_label = "Texas"
+        if state_label == "NY": state_label = "New York"
+        
+        games_full.append({
+            "id": k,
+            "name": k.replace("Virginia", "").replace("Texas", "").replace("NewYork", ""),
+            "state": state_label
+        })
+    
+    return {
+        "games": [k for k in GAMES.keys()], # Backward compatibility
+        "games_full": games_full
+    }
 
 @app.get("/api/jackpots")
 def get_live_jackpots(state: str = "VA"):
