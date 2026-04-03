@@ -25,5 +25,5 @@ COPY --from=build /app/dist /usr/share/nginx/html
 RUN cp /etc/nginx/nginx.conf /etc/nginx/nginx.conf.template
 
 EXPOSE 80
-# Use sh to run envsubst before starting nginx
-CMD ["sh", "-c", "envsubst '${PORT}' < /etc/nginx/nginx.conf.template > /etc/nginx/nginx.conf && nginx -g 'daemon off;'"]
+# JMc - [2026-04-03] - Use sh to run envsubst to inject both PORT and BACKEND_URL before starting nginx.
+CMD ["sh", "-c", "envsubst '${PORT} ${BACKEND_URL}' < /etc/nginx/nginx.conf.template > /etc/nginx/nginx.conf && nginx -g 'daemon off;'"]

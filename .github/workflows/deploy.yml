@@ -123,3 +123,5 @@ jobs:
         region: ${{ env.REGION }}
         image: ${{ env.GAR_LOCATION }}/${{ env.FRONTEND_SERVICE_NAME }}:${{ github.sha }}
         flags: '--allow-unauthenticated'
+        env_vars: |
+          BACKEND_URL=${{ steps.deploy-backend.outputs.url }}
