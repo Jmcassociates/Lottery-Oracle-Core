@@ -286,9 +286,11 @@ class BasePickFetcher(LotteryFetcher):
     """
     
     def fetch_data(self):
-        response = requests.get(self.url, timeout=10)
+        logger.info(f"[{self.game_name}] Connecting to data stream: {self.url}")
+        response = requests.get(self.url, timeout=20)
         response.raise_for_status()
 
+        logger.info(f"[{self.game_name}] Payload received ({len(response.text)} bytes). Commencing parse.")
         draws = []
         lines = response.text.splitlines()
 

@@ -138,8 +138,8 @@ def run_sync_task():
                 log_entry.error_message = error_str
             
             db.commit()
-            # JMc - [2026-04-01] - Add a small delay to avoid API throttling on high-volume days
-            time.sleep(1)
+            # JMc - [2026-04-01] - Increase delay to 3s to ensure state APIs (VA) reset rate limits.
+            time.sleep(3)
 
         # Collect Final Metrics
         logger.info("Oracle - Manual Sync - [PHASE 3] Calculating Syndicate Pulse Metrics...")

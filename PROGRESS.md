@@ -1,5 +1,9 @@
 # Project Progress: Lottery Oracle Dashboard
 
+### 2026-04-01 23:55 EDT - Phase 22: Temporal Guard & Universal Purge
+- **Universal Ghost Buster:** Hardened the pre-boot cleanup logic to mark *all* existing "IMPORTING" records as "FAILED" upon server restart. This eliminates UI deadlocks caused by server/database timezone mismatches or narrow cleanup windows.
+- **State Synchronization:** Confirmed the Admin Dashboard now reliably resets its sync state after every deployment, ensuring technicians are never trapped by "IMPORTING" ghosts from previous environment revisions.
+
 ### 2026-04-01 23:45 EDT - Phase 21: Network Hardening & API Throttling
 - **API Breather Protocol:** Injected a 1-second `time.sleep()` between game syncs in the background protocol. This prevents rapid-fire requests to state lottery APIs (VA, TX, NY) which was triggering connection hangs and silent timeouts on Cloud Run.
 - **Resilient Looping:** Confirmed the resync protocol correctly identifies and logs each game variant (Day/Night) even when delayed, ensuring a full data sweep without triggering firewall blacklisting.
