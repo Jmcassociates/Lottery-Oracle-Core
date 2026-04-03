@@ -358,25 +358,28 @@ class BasePickFetcher(LotteryFetcher):
         except Exception as e:
             logger.error(f"Failed to fetch data for {self.game_name}: {e}")
             return False
-            
-        # Optimization: Fetch all existing dates for VA for all variants (Day/Night)
-        # to minimize queries during the loop.
+
+        # JMc - [2026-04-01] - Optimization: Only fetch the most recent 100 records for the duplicate check.
+        # This prevents the 'Pick 3 Standoff' where the engine chokes on 10,000+ historical rows.
         existing_records = {
             (d.game_name, d.draw_date) for d in db.query(DrawRecord.game_name, DrawRecord.draw_date).filter(
-                DrawRecord.state_code == "VA"
-            ).all()
+                DrawRecord.game_name.startswith(self.game_name)
+            ).order_by(DrawRecord.draw_date.desc()).limit(200).all()
         }
 
         new_records = 0
-        batch_size = 500
+        batch_size = 100
+        # Process in reverse (oldest first) so we can stop if we hit known data
+        raw_draws.sort(key=lambda x: x['date'])
+
         for draw in raw_draws:
             actual_game_name = draw.get('game_name', self.game_name)
             draw_date = draw['date'].date()
-            
+
             if (actual_game_name, draw_date) not in existing_records:
-                # JMc - [2026-03-16] - IMPORTANT: For Pick games, order matters! So we DO NOT sort here.
+                # JMc - [2026-03-16] - IMPORTANT: For Pick games, order matters! So we DO NOT sort white_balls here.
                 white_str = ",".join(str(x) for x in draw['white_balls'])
-                
+
                 record = DrawRecord(
                     state_code="VA",
                     game_name=actual_game_name,
@@ -387,14 +390,13 @@ class BasePickFetcher(LotteryFetcher):
                 )
                 db.add(record)
                 new_records += 1
-                
+
                 if new_records % batch_size == 0:
                     db.commit()
-                
+
         db.commit()
         logger.info(f"[{self.game_name}] Sync complete. Added {new_records} new draws.")
         return new_records
-
 class VirginiaPick5Fetcher(BasePickFetcher):
     """
     JMc - [2026-03-16] - Fetches Pick 5 from the Virginia Lottery JSON API.
