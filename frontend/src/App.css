@@ -216,7 +216,7 @@ select {
   transform: translateY(-2px);
 }
 
-/* JMc - [2026-04-03] - Account Dropdown Styles */
+/* JMc - [2026-04-03] - Account Dropdown Styles - Fixed Hover Bridge */
 .account-menu {
   position: relative;
   display: inline-block;
@@ -233,9 +233,19 @@ select {
   z-index: 1000;
   border-radius: 12px;
   border: 1px solid var(--border);
-  margin-top: 10px;
-  padding: 0.75rem 0;
+  padding: 0.5rem 0;
   text-align: left;
+}
+
+/* JMc - The Bridge: Create an invisible hit-box between the button and the menu */
+.dropdown-content::before {
+  content: "";
+  position: absolute;
+  top: -15px;
+  left: 0;
+  width: 100%;
+  height: 15px;
+  background: transparent;
 }
 
 .account-menu:hover .dropdown-content {
