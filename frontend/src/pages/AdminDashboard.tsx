@@ -144,6 +144,25 @@ const AdminDashboard = () => {
     }
   };
 
+  const toggleStatus = async (userId: number, currentStatus: boolean) => {
+    const newStatus = !currentStatus;
+    const action = newStatus ? "RE-ACTIVATE" : "DEACTIVATE";
+    if (!window.confirm(`Are you sure you want to ${action} this protocol access?`)) return;
+
+    try {
+      const res = await fetchWithAuth(`/api/admin/users/${userId}/active`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ is_active: newStatus })
+      });
+      if (res.ok) {
+        setUsers(users.map(u => u.id === userId ? { ...u, is_active: newStatus } : u));
+      }
+    } catch (e) {
+      alert("Compliance override failed.");
+    }
+  };
+
   if (loading && !stats) return <div style={{ color: '#38bdf8', padding: '50px', textAlign: 'center', fontFamily: 'monospace' }}>INITIALIZING WAR ROOM...</div>;
 
   return (
@@ -206,9 +225,14 @@ const AdminDashboard = () => {
                   <td style={{ padding: '12px 8px', fontSize: '13px', color: '#64748b' }}>{new Date(user.created_at).toLocaleDateString()}</td>
                   <td style={{ padding: '12px 8px', textAlign: 'right' }}>
                     {!user.is_admin && (
-                      <button onClick={() => toggleTier(user.id, user.tier)} style={{ background: 'transparent', border: '1px solid #334155', color: '#cbd5e1', fontSize: '12px', padding: '4px 8px', cursor: 'pointer', borderRadius: '4px' }}>
-                        {user.tier === 'pro' ? 'Downgrade' : 'Upgrade to Pro'}
-                      </button>
+                      <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
+                        <button onClick={() => toggleTier(user.id, user.tier)} style={{ background: 'transparent', border: '1px solid #334155', color: '#cbd5e1', fontSize: '12px', padding: '4px 8px', cursor: 'pointer', borderRadius: '4px' }}>
+                          {user.tier === 'pro' ? 'Downgrade' : 'Upgrade to Pro'}
+                        </button>
+                        <button onClick={() => toggleStatus(user.id, user.is_active)} style={{ background: 'transparent', border: `1px solid ${user.is_active ? '#450a0a' : '#10b981'}`, color: user.is_active ? '#fca5a5' : '#10b981', fontSize: '12px', padding: '4px 8px', cursor: 'pointer', borderRadius: '4px' }}>
+                          {user.is_active ? 'Deactivate' : 'Reactivate'}
+                        </button>
+                      </div>
                     )}
                   </td>
                 </tr>

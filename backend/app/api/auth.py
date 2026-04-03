@@ -135,6 +135,14 @@ def verify_magic_link(req: MagicLinkVerify, db: Session = Depends(get_db)):
         db.commit()
 
 
+    # JMc - [2026-04-03] - Compliance Killswitch Check
+    if not user.is_active:
+        logger.warning(f"Protocol access DENIED for deactivated account: {email}")
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="ACCOUNT DEACTIVATED: Protocol access terminated by administration."
+        )
+
     # Update last login
     from sqlalchemy import update
     db.execute(update(User).where(User.id == user.id).values(last_login=datetime.utcnow()))
