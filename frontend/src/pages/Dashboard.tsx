@@ -1,13 +1,18 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { fetchWithAuth, getTier, logout } from '../utils/auth';
 import mermaid from 'mermaid';
 
-// JMc - [2026-04-01] - Initialize Mermaid for architectural visualization.
+// JMc - [2026-04-01] - Initialize Mermaid with high-contrast dark theme.
 mermaid.initialize({
-  startOnLoad: true,
+  startOnLoad: false,
   theme: 'dark',
   securityLevel: 'loose',
-  fontFamily: 'Segoe UI, system-ui, sans-serif'
+  fontFamily: 'Segoe UI, system-ui, sans-serif',
+  themeVariables: {
+    primaryColor: '#3b82f6',
+    edgeLabelBackground: '#1e293b',
+    tertiaryColor: '#1e293b'
+  }
 });
 
 const API_BASE = import.meta.env.VITE_API_URL || '';
@@ -19,6 +24,30 @@ interface JackpotData {
     state?: string;
   }
 }
+
+// JMc - [2026-04-01] - Robust Mermaid component to handle React lifecycle rendering.
+const MermaidDiagram = ({ chart }: { chart: string }) => {
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (ref.current) {
+      ref.current.removeAttribute('data-processed');
+      mermaid.contentLoaded();
+      // Force an explicit render pass
+      const renderChart = async () => {
+        try {
+          const { svg } = await mermaid.render(`mermaid-${Math.random().toString(36).substr(2, 9)}`, chart);
+          if (ref.current) ref.current.innerHTML = svg;
+        } catch (e) {
+          console.error("Mermaid Render Error:", e);
+        }
+      };
+      renderChart();
+    }
+  }, [chart]);
+
+  return <div ref={ref} className="mermaid" style={{ display: 'flex', justifyContent: 'center', width: '100%' }} />;
+};
 
 const Dashboard = () => {
   const [statesList, setStatesList] = useState<string[]>(['VA']);
@@ -42,18 +71,7 @@ const Dashboard = () => {
   const [numTickets, setNumTickets] = useState<number>(tier === 'pro' ? 20 : 5);
 
   useEffect(() => {
-    // JMc - [2026-04-01] - Force Mermaid to scan the DOM after React has rendered the component.
-    // Using a small timeout to ensure the DOM is fully settled.
-    const timer = setTimeout(() => {
-      mermaid.run({
-        querySelector: '.mermaid',
-      }).catch(err => console.error("Mermaid run failed:", err));
-    }, 200);
-    return () => clearTimeout(timer);
-  }, []);
-
-  useEffect(() => {
-    // JMc - [2026-03-18] - Fetch the available configured states autonomously.
+    // Fetch available states
     const ts = new Date().getTime();
     fetch(`${API_BASE}/api/states?_t=${ts}`)
       .then(res => res.json())
@@ -69,14 +87,12 @@ const Dashboard = () => {
   }, []);
 
   useEffect(() => {
-    // JMc - [2026-04-01] - Fetch ALL games across ALL states for the Global Pulse Ticker.
     const ts = new Date().getTime();
     fetch(`${API_BASE}/api/games?_t=${ts}`)
       .then(res => res.json())
       .then(data => {
         if (data.games_full) {
           setAllGames(data.games_full);
-          // Pre-fetch recent draws for the ticker
           data.games_full.forEach((g: any) => {
              fetchWithAuth(`/api/history/${g.id}?limit=1&_t=${ts}`)
               .then(res => res.json())
@@ -85,21 +101,19 @@ const Dashboard = () => {
                   setRecentDraws(prev => ({...prev, [g.id]: history[0]}));
                 }
               })
-              .catch(err => console.error(`Failed to load history for ${g.id}:`, err));
+              .catch(err => console.error(`Failed history for ${g.id}:`, err));
           });
         }
       })
-      .catch(err => console.error("Failed to load global game roster:", err));
+      .catch(err => console.error("Failed games roster load:", err));
 
-    // Pull jackpots for ALL games
     fetch(`${API_BASE}/api/jackpots?_t=${ts}`)
       .then(res => res.json())
       .then(data => setJackpots(data))
-      .catch(err => console.error("Failed to load global jackpots:", err));
+      .catch(err => console.error("Failed global jackpots load:", err));
   }, []);
 
   useEffect(() => {
-    // JMc - [2026-03-16] - Dynamically fetch available games for the selector.
     const ts = new Date().getTime();
     fetch(`${API_BASE}/api/games?state=${selectedState}&_t=${ts}`)
       .then(res => res.json())
@@ -109,21 +123,15 @@ const Dashboard = () => {
           setSelectedGame(data.games[0]);
         }
       })
-      .catch(err => console.error("Failed to load local games:", err));
-      
+      .catch(err => console.error("Failed local games load:", err));
     loadSavedTickets();
   }, [selectedState]);
 
   const loadSavedTickets = async () => {
     try {
       const res = await fetchWithAuth('/api/my-tickets');
-      if (res.ok) {
-        const data = await res.json();
-        setSavedBatches(data);
-      }
-    } catch (e) {
-      console.error("Failed to load vault");
-    }
+      if (res.ok) setSavedBatches(await res.json());
+    } catch (e) { console.error("Failed vault load"); }
   };
 
   const handleUpgrade = () => {
@@ -131,29 +139,16 @@ const Dashboard = () => {
   };
 
   const generateTickets = async () => {
-    setLoading(true);
-    setError(null);
-    setTickets([]);
-    
+    setLoading(true); setError(null); setTickets([]);
     try {
       const safeNumTickets = Math.min(Math.max(1, numTickets), maxTickets);
-      const res = await fetchWithAuth(`/api/generate/${selectedGame}?num_tickets=${safeNumTickets}`, {
-        method: 'POST'
-      });
+      const res = await fetchWithAuth(`/api/generate/${selectedGame}?num_tickets=${safeNumTickets}`, { method: 'POST' });
       const data = await res.json();
-      if (!res.ok) {
-        if (res.status === 429) {
-          throw new Error('Neural Link Throttled: Too many generation requests. Please wait a moment for the matrices to cool.');
-        }
-        throw new Error(data.detail || 'Generation failed');
-      }
+      if (!res.ok) throw new Error(data.detail || 'Generation failed');
       setTickets(data.tickets);
       loadSavedTickets(); 
-    } catch (e: any) {
-      setError(e.message || "An unexpected error occurred");
-    } finally {
-      setLoading(false);
-    }
+    } catch (e: any) { setError(e.message || "An unexpected error occurred");
+    } finally { setLoading(false); }
   };
 
   const checkBatch = async (batchId: number) => {
@@ -164,24 +159,18 @@ const Dashboard = () => {
         const data = await res.json();
         setBatchResults(prev => ({ ...prev, [batchId]: data }));
       }
-    } catch (e) {
-      console.error("Failed to check batch reality");
-    } finally {
-      setCheckingBatch(null);
-    }
+    } catch (e) { console.error("Failed check"); } finally { setCheckingBatch(null); }
   };
 
   const deleteBatch = async (batchId: number) => {
-    if (!window.confirm("Are you sure you want to permanently delete this batch? This cannot be undone.")) return;
+    if (!window.confirm("Are you sure?")) return;
     try {
       const res = await fetchWithAuth(`/api/batches/${batchId}`, { method: 'DELETE' });
       if (res.ok) {
         setSavedBatches(prev => prev.filter(b => b.id !== batchId));
         setExpandedBatch(null);
       }
-    } catch (e) {
-      console.error("Failed to delete batch");
-    }
+    } catch (e) { console.error("Failed delete"); }
   };
 
   const exportBatch = async (batchId: number, gameName: string) => {
@@ -195,49 +184,44 @@ const Dashboard = () => {
         a.href = url;
         a.download = `Oracle_Manifest_${gameName}_${batchId}.pdf`;
         document.body.appendChild(a);
-        a.click();
-        a.remove();
-        window.URL.revokeObjectURL(url);
+        a.click(); a.remove(); window.URL.revokeObjectURL(url);
       }
-    } catch (e) {
-      console.error("Failed to export PDF");
-    }
+    } catch (e) { console.error("Failed export"); }
   };
 
   const MathRealitySection = () => (
-    <section style={{ marginBottom: '4rem', padding: '2rem', background: 'rgba(15, 23, 42, 0.5)', borderRadius: '12px', border: '1px solid var(--border)' }}>
-      <h2 style={{ fontSize: '1.8rem', color: 'var(--text-main)', marginBottom: '1rem', borderBottom: '2px solid var(--accent)', paddingBottom: '0.5rem', display: 'inline-block' }}>
+    <section style={{ marginBottom: '4rem', padding: '2.5rem', background: 'rgba(30, 41, 59, 0.7)', borderRadius: '16px', border: '1px solid var(--border)', boxShadow: '0 4px 20px rgba(0,0,0,0.4)' }}>
+      <h2 style={{ fontSize: '2rem', color: 'white', marginBottom: '1.5rem', borderBottom: '2px solid var(--accent)', paddingBottom: '0.75rem', display: 'inline-block' }}>
         The Mathematical Reality: Organizing the Variance
       </h2>
-      <p style={{ fontSize: '1.1rem', color: 'var(--text-muted)', lineHeight: '1.6', marginBottom: '2rem' }}>
+      <p style={{ fontSize: '1.15rem', color: '#e2e8f0', lineHeight: '1.7', marginBottom: '2.5rem' }}>
         The Oracle doesn't predict the future; it <strong>organizes the variance</strong>. Every draw is an independent event, and the ping-pong balls do not have memory. We don't ask for "lucky numbers"; we apply raw empirical data to a game of pure, brutal mathematical variance.
       </p>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '2rem', marginBottom: '3rem' }}>
-        <div style={{ padding: '1.5rem', background: 'var(--panel-bg)', borderRadius: '8px', borderLeft: '4px solid var(--accent)' }}>
-          <h3 style={{ color: 'var(--accent)', marginTop: 0 }}>01. The Prophet</h3>
-          <p style={{ fontSize: '0.9rem', color: 'var(--text-muted)' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '2rem', marginBottom: '3.5rem' }}>
+        <div style={{ padding: '1.75rem', background: 'var(--panel-bg)', borderRadius: '12px', borderLeft: '4px solid var(--accent)' }}>
+          <h3 style={{ color: 'var(--accent)', marginTop: 0, fontSize: '1.25rem' }}>01. The Prophet</h3>
+          <p style={{ fontSize: '1rem', color: '#cbd5e1', lineHeight: '1.5' }}>
             <strong>Autonomous Seeding:</strong> Scans a decade of historical data using <strong>Markov Chains</strong> (40%), <strong>Poisson Distribution</strong> (40%), and <strong>Base Frequency</strong> (20%) to build a high-tension 15-number Smart Pool.
           </p>
         </div>
-        <div style={{ padding: '1.5rem', background: 'var(--panel-bg)', borderRadius: '8px', borderLeft: '4px solid #8b5cf6' }}>
-          <h3 style={{ color: '#8b5cf6', marginTop: 0 }}>02. The Pragmatist</h3>
-          <p style={{ fontSize: '0.9rem', color: 'var(--text-muted)' }}>
+        <div style={{ padding: '1.75rem', background: 'var(--panel-bg)', borderRadius: '12px', borderLeft: '4px solid #8b5cf6' }}>
+          <h3 style={{ color: '#8b5cf6', marginTop: 0, fontSize: '1.25rem' }}>02. The Pragmatist</h3>
+          <p style={{ fontSize: '1rem', color: '#cbd5e1', lineHeight: '1.5' }}>
             <strong>Combinatorial Wheeling:</strong> Takes the Smart Pool and establishes maximum coverage across 3,003 possible variations, prioritizing 3-number triplets to ensure structural integrity in every batch.
           </p>
         </div>
-        <div style={{ padding: '1.5rem', background: 'var(--panel-bg)', borderRadius: '8px', borderLeft: '4px solid #10b981' }}>
-          <h3 style={{ color: '#10b981', marginTop: 0 }}>03. The Pattern Scouter</h3>
-          <p style={{ fontSize: '0.9rem', color: 'var(--text-muted)' }}>
+        <div style={{ padding: '1.75rem', background: 'var(--panel-bg)', borderRadius: '12px', borderLeft: '4px solid #10b981' }}>
+          <h3 style={{ color: '#10b981', marginTop: 0, fontSize: '1.25rem' }}>03. The Pattern Scouter</h3>
+          <p style={{ fontSize: '1rem', color: '#cbd5e1', lineHeight: '1.5' }}>
             <strong>The Purge:</strong> Enforces strict geometric filters. We reject odd/even outliers, spatial spread traps, consecutive sequences, and historical jackpot collisions.
           </p>
         </div>
       </div>
-      <div style={{ padding: '2rem', background: '#020617', borderRadius: '12px', border: '1px solid var(--border)' }}>
-        <h4 style={{ textAlign: 'center', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '2px', marginBottom: '1.5rem', fontSize: '0.8rem' }}>
+      <div style={{ padding: '2.5rem', background: '#020617', borderRadius: '16px', border: '1px solid var(--border)' }}>
+        <h4 style={{ textAlign: 'center', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '2px', marginBottom: '2rem', fontSize: '0.85rem' }}>
           Autonomous Architecture Flow
         </h4>
-        <div className="mermaid" style={{ display: 'flex', justifyContent: 'center' }}>
-{`graph TD
+        <MermaidDiagram chart={`graph TD
     DB[(10-Year Database)] --> PROPHET[The Prophet Algorithm]
     
     subgraph Scoring Models
@@ -260,8 +244,7 @@ const Dashboard = () => {
     style POOL fill:#064e3b,stroke:#10b981,color:#fff
     style PRAGMATIST fill:#4c1d95,stroke:#8b5cf6,color:#fff
     style SCOUTER fill:#92400e,stroke:#f59e0b,color:#fff
-    style FINAL fill:#065f46,stroke:#10b981,color:#fff`}
-        </div>
+    style FINAL fill:#065f46,stroke:#10b981,color:#fff`} />
       </div>
     </section>
   );
@@ -295,29 +278,19 @@ const Dashboard = () => {
         </div>
         <div className="ticker-container">
           <div className="ticker-track">
-            {/* JMc - [2026-04-01] - Double the list for seamless looping */}
-            {[...(allGames.length > 0 ? allGames : [{id: 'Powerball', name: 'Powerball', state: 'National'}, {id: 'MegaMillions', name: 'Mega Millions', state: 'National'}]), ...(allGames.length > 0 ? allGames : [{id: 'Powerball', name: 'Powerball', state: 'National'}, {id: 'MegaMillions', name: 'Mega Millions', state: 'National'}])].map((game, idx) => (
+            {[...(allGames.length > 0 ? allGames : [{id: 'Powerball', name: 'Powerball', state: 'National'}]), ...(allGames.length > 0 ? allGames : [{id: 'Powerball', name: 'Powerball', state: 'National'}])].map((game, idx) => (
               <div key={`${game.id}-${idx}`} className="ticker-card">
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.5rem' }}>
                   <span style={{ fontSize: '0.65rem', color: 'var(--accent)', fontWeight: 'bold', textTransform: 'uppercase' }}>{game.state}</span>
-                  <span style={{ fontSize: '0.6rem', color: 'var(--text-muted)' }}>{recentDraws[game.id] ? recentDraws[game.id].date : ''}</span>
+                  <span style={{ fontSize: '0.6rem', color: 'var(--text-muted)' }}>{recentDraws[game.id]?.date || ''}</span>
                 </div>
-                <div style={{ fontSize: '0.9rem', fontWeight: 'bold', marginBottom: '0.25rem' }}>{game.name}</div>
-                <div style={{ fontSize: '1.2rem', fontWeight: 'bold', color: 'white', marginBottom: '0.5rem' }}>
-                  {jackpots?.[game.id]?.jackpot || 'Syncing...'}
-                </div>
+                <div style={{ fontSize: '0.9rem', fontWeight: 'bold', marginBottom: '0.25rem', color: 'white' }}>{game.name}</div>
+                <div style={{ fontSize: '1.2rem', fontWeight: 'bold', color: 'white', marginBottom: '0.5rem' }}>{jackpots?.[game.id]?.jackpot || 'Syncing...'}</div>
                 {recentDraws[game.id] && (
                   <div style={{ display: 'flex', gap: '0.25rem' }}>
-                     {recentDraws[game.id].white_balls.slice(0, 5).map((w: number, i: number) => (
-                       <span key={i} style={{ width: '18px', height: '18px', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--ball-bg)', color: 'var(--ball-text)', borderRadius: '50%', fontWeight: 'bold', fontSize: '0.6rem' }}>
-                         {w.toString().padStart(2, '0')}
-                       </span>
-                     ))}
-                     {recentDraws[game.id].special_ball !== null && (
-                       <span style={{ width: '18px', height: '18px', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--special-ball-bg)', color: 'white', borderRadius: '50%', fontWeight: 'bold', fontSize: '0.6rem' }}>
-                         {recentDraws[game.id].special_ball.toString().padStart(2, '0')}
-                       </span>
-                     )}
+                   {recentDraws[game.id].white_balls.slice(0, 5).map((w: number, i: number) => (
+                     <span key={i} style={{ width: '18px', height: '18px', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--ball-bg)', color: 'var(--ball-text)', borderRadius: '50%', fontWeight: 'bold', fontSize: '0.6rem' }}>{w.toString().padStart(2, '0')}</span>
+                   ))}
                   </div>
                 )}
               </div>
@@ -335,43 +308,16 @@ const Dashboard = () => {
             </div>
             <div className="selector" style={{ flex: 1 }}>
               <label>Volume (Max {maxTickets}):</label>
-              <input 
-                type="number" 
-                min="1" 
-                max={maxTickets} 
-                value={numTickets} 
-                onChange={(e) => setNumTickets(parseInt(e.target.value) || 1)}
-                style={{
-                  padding: '0.75rem 1.5rem',
-                  background: 'var(--bg-color)',
-                  border: '1px solid var(--border)',
-                  color: 'var(--text-main)',
-                  borderRadius: '6px',
-                  fontSize: '1rem',
-                  outline: 'none'
-                }}
+              <input type="number" min="1" max={maxTickets} value={numTickets} onChange={(e) => setNumTickets(parseInt(e.target.value) || 1)}
+                style={{ padding: '0.75rem 1.5rem', background: 'var(--bg-color)', border: '1px solid var(--border)', color: 'var(--text-main)', borderRadius: '6px' }}
               />
             </div>
           </div>
           <div style={{ display: 'flex', alignItems: 'flex-end', paddingBottom: '2px' }}>
-            <button onClick={generateTickets} disabled={loading} className="btn-primary" style={{ height: 'calc(100% - 22px)' }}>
-              {loading ? 'Compiling Matrices...' : 'Execute Generation'}
-            </button>
+            <button onClick={generateTickets} disabled={loading} className="btn-primary" style={{ height: 'calc(100% - 22px)' }}>{loading ? 'Compiling...' : 'Execute Generation'}</button>
           </div>
         </section>
 
-        {error && (
-          <div style={{ backgroundColor: 'rgba(239, 68, 68, 0.1)', color: '#ef4444', padding: '1rem', borderRadius: '8px', marginBottom: '2rem', border: '1px solid rgba(239, 68, 68, 0.3)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <div><strong>System Halt:</strong> {error}</div>
-            {error.includes('Upgrade to Pro') && (
-              <button onClick={handleUpgrade} style={{ background: '#ef4444', color: 'white', border: 'none', padding: '0.5rem 1rem', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold' }}>
-                Elevate Tier
-              </button>
-            )}
-          </div>
-        )}
-
-        {/* Free Tier: Show Math Reality here */}
         {tier !== 'pro' && <MathRealitySection />}
 
         {tickets.length > 0 && (
@@ -380,14 +326,8 @@ const Dashboard = () => {
             <div className="ticket-grid">
               {tickets.map((t, idx) => (
                 <div key={idx} className="ticket">
-                  <div className="white-balls">
-                    {t.white_balls.map((w: number, i: number) => (
-                      <span key={i} className="ball">{w.toString().padStart(2, '0')}</span>
-                    ))}
-                  </div>
-                  {t.special_ball !== null && (
-                    <span className="special-ball">{t.special_ball.toString().padStart(2, '0')}</span>
-                  )}
+                  <div className="white-balls">{t.white_balls.map((w: number, i: number) => <span key={i} className="ball">{w.toString().padStart(2, '0')}</span>)}</div>
+                  {t.special_ball !== null && <span className="special-ball">{t.special_ball.toString().padStart(2, '0')}</span>}
                 </div>
               ))}
             </div>
@@ -396,63 +336,33 @@ const Dashboard = () => {
 
         <section className="vault">
           <h2>The Vault (Historical Artifacts)</h2>
-          {savedBatches.length === 0 ? (
-            <p style={{ color: 'var(--text-muted)' }}>No historical artifacts found in your sector.</p>
-          ) : (
+          {savedBatches.length === 0 ? <p style={{ color: 'var(--text-muted)' }}>No historical artifacts found.</p> : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
               {savedBatches.map(batch => (
                 <div key={batch.id} style={{ background: 'var(--panel-bg)', borderRadius: '8px', border: '1px solid var(--border)', overflow: 'hidden' }}>
-                  <div 
-                    onClick={() => setExpandedBatch(expandedBatch === batch.id ? null : batch.id)}
-                    style={{ padding: '1rem 1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer', background: expandedBatch === batch.id ? 'rgba(255,255,255,0.02)' : 'transparent' }}
+                  <div onClick={() => setExpandedBatch(expandedBatch === batch.id ? null : batch.id)}
+                    style={{ padding: '1rem 1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer' }}
                   >
-                    <div>
-                      <strong style={{ fontSize: '1.1rem', display: 'block', marginBottom: '0.2rem' }}>{batch.game_name}</strong>
-                      <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>
-                        {new Date(batch.created_at).toLocaleString()} • {batch.tickets.length} Tickets
-                      </span>
-                    </div>
+                    <div><strong>{batch.game_name}</strong><span style={{ fontSize: '0.85rem', color: 'var(--text-muted)', display: 'block' }}>{new Date(batch.created_at).toLocaleString()} • {batch.tickets.length} Tickets</span></div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
                       <div style={{ color: 'var(--accent)', fontWeight: 'bold' }}>{expandedBatch === batch.id ? 'Hide ↑' : 'View ↓'}</div>
-                      <button onClick={(e) => { e.stopPropagation(); deleteBatch(batch.id); }} className="btn-secondary" style={{ padding: '0.25rem 0.75rem', color: '#ef4444', borderColor: '#ef4444' }}>Delete</button>
+                      <button onClick={(e) => { e.stopPropagation(); deleteBatch(batch.id); }} className="btn-secondary" style={{ color: '#ef4444', borderColor: '#ef4444' }}>Delete</button>
                     </div>
                   </div>
-
                   {expandedBatch === batch.id && (
                     <div style={{ padding: '1.5rem', borderTop: '1px solid var(--border)', background: 'rgba(0,0,0,0.2)' }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-                        <h3 style={{ margin: 0, fontSize: '1.1rem' }}>Generated Combinations</h3>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1.5rem' }}>
+                        <h3 style={{ margin: 0 }}>Generated Combinations</h3>
                         <div style={{ display: 'flex', gap: '1rem' }}>
-                          <button onClick={() => exportBatch(batch.id, batch.game_name)} className="btn-secondary">📄 Export PDF</button>
-                          <button onClick={() => checkBatch(batch.id)} disabled={checkingBatch === batch.id} className="btn-primary">{checkingBatch === batch.id ? 'Checking...' : 'Run Reality Check'}</button>
+                          <button onClick={() => exportBatch(batch.id, batch.game_name)} className="btn-secondary">📄 PDF</button>
+                          <button onClick={() => checkBatch(batch.id)} disabled={checkingBatch === batch.id} className="btn-primary">Run Reality Check</button>
                         </div>
                       </div>
-
-                      {batchResults[batch.id] && (
-                        <div style={{ marginBottom: '2rem', padding: '1.5rem', borderRadius: '8px', background: 'var(--bg-color)', border: '1px solid var(--border)' }}>
-                          <h3 style={{ marginTop: 0, borderBottom: '1px solid var(--border)', paddingBottom: '0.5rem' }}>Reality Check Report</h3>
-                          <div style={{ display: 'flex', gap: '2rem', marginBottom: '1.5rem' }}>
-                            <div><div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>Draws</div><div style={{ fontSize: '1.2rem', fontWeight: 'bold' }}>{batchResults[batch.id].draws_checked}</div></div>
-                            <div><div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>Spent</div><div style={{ fontSize: '1.2rem', fontWeight: 'bold', color: '#ef4444' }}>${batchResults[batch.id].total_spent}</div></div>
-                            <div><div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>Won</div><div style={{ fontSize: '1.2rem', fontWeight: 'bold', color: '#10b981' }}>${batchResults[batch.id].total_won}</div></div>
-                            <div><div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>Net</div><div style={{ fontSize: '1.2rem', fontWeight: 'bold', color: batchResults[batch.id].net_roi > 0 ? '#10b981' : '#ef4444' }}>${batchResults[batch.id].net_roi}</div></div>
-                          </div>
-                        </div>
-                      )}
-
                       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '1rem' }}>
                         {batch.tickets.map((t: any) => (
-                          <div key={t.id} style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', padding: '0.75rem', background: 'var(--panel-bg)', borderRadius: '6px', border: '1px solid var(--border)' }}>
-                            {t.white_balls.map((w: number, i: number) => (
-                              <span key={i} style={{ width: '28px', height: '28px', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--ball-bg)', color: 'var(--ball-text)', borderRadius: '50%', fontWeight: 'bold', fontSize: '0.75rem' }}>
-                                {w.toString().padStart(2, '0')}
-                              </span>
-                            ))}
-                            {t.special_ball !== null && (
-                              <span style={{ width: '28px', height: '28px', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--special-ball-bg)', color: 'white', borderRadius: '50%', fontWeight: 'bold', fontSize: '0.75rem', marginLeft: 'auto' }}>
-                                {t.special_ball.toString().padStart(2, '0')}
-                              </span>
-                            )}
+                          <div key={t.id} style={{ display: 'flex', gap: '0.5rem', padding: '0.75rem', background: 'var(--panel-bg)', borderRadius: '6px', border: '1px solid var(--border)' }}>
+                            {t.white_balls.map((w: number, i: number) => <span key={i} style={{ width: '28px', height: '28px', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--ball-bg)', color: 'var(--ball-text)', borderRadius: '50%', fontWeight: 'bold', fontSize: '0.75rem' }}>{w.toString().padStart(2, '0')}</span>)}
+                            {t.special_ball !== null && <span style={{ width: '28px', height: '28px', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--special-ball-bg)', color: 'white', borderRadius: '50%', fontWeight: 'bold', fontSize: '0.75rem', marginLeft: 'auto' }}>{t.special_ball.toString().padStart(2, '0')}</span>}
                           </div>
                         ))}
                       </div>
@@ -464,9 +374,8 @@ const Dashboard = () => {
           )}
         </section>
 
-        {/* Pro Tier: Hide Math Reality behind Vault */}
         {tier === 'pro' && (
-           <div style={{ marginTop: '5rem', opacity: 0.5 }}>
+           <div style={{ marginTop: '5rem' }}>
               <MathRealitySection />
            </div>
         )}
@@ -474,8 +383,7 @@ const Dashboard = () => {
         {tier === 'free' && (
           <section style={{ marginTop: '4rem', padding: '3rem', background: 'linear-gradient(135deg, var(--panel-bg) 0%, #1e3a8a 100%)', borderRadius: '16px', border: '1px solid var(--accent)', textAlign: 'center' }}>
             <h2 style={{ fontSize: '1.5rem', color: 'white' }}>Standard Terminal: Limit 5 Tickets</h2>
-            <p style={{ marginBottom: '2rem' }}>Elevate to Pro for 50 tickets per generation and advanced Markov matrices.</p>
-            <button onClick={handleUpgrade} className="btn-primary">ELEVATE TO PRO TIER</button>
+            <button onClick={handleUpgrade} className="btn-primary" style={{ marginTop: '1.5rem' }}>ELEVATE TO PRO TIER</button>
           </section>
         )}
       </main>

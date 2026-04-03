@@ -1,5 +1,10 @@
 # Project Progress: Lottery Oracle Dashboard
 
+### 2026-04-01 21:30 EDT - Phase 16: Mermaid Visualization Stabilization
+- **Force-Render Protocol:** Resolved the "Ghost Diagram" bug where raw Mermaid code was visible instead of rendered graphs. Implemented an explicit `mermaid.run()` trigger inside a React `useEffect` with a settled-DOM timeout.
+- **Cross-Sector Fix:** Applied the stabilization fix to both the public Landing Page and the internal Oracle Command Terminal to ensure consistent architectural transparency.
+- **Build Hardening:** Confirmed the `mermaid.run()` implementation satisfies strict TypeScript error handling requirements.
+
 ### 2026-04-01 21:15 EDT - Phase 15: Oracle Heartbeat (Ticker v2.4)
 - **Animated Market Crawl:** Implemented a high-velocity CSS `@keyframes` animation for the Global Pulse Ticker. The roster now crawls seamlessly across the screen at 60s intervals.
 - **Backend Schema Hardening:** Upgraded `/api/games` to support a `games_full` object, enabling the frontend to ingest the complete 13-game roster (VA, TX, NY, NAT) with full state metadata.
