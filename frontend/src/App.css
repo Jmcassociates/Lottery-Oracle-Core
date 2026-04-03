@@ -215,3 +215,68 @@ select {
   border-color: var(--accent);
   transform: translateY(-2px);
 }
+
+/* JMc - [2026-04-03] - Account Dropdown Styles */
+.account-menu {
+  position: relative;
+  display: inline-block;
+}
+
+.dropdown-content {
+  display: none;
+  position: absolute;
+  right: 0;
+  top: 100%;
+  background-color: var(--panel-bg);
+  min-width: 240px;
+  box-shadow: 0px 8px 32px 0px rgba(0,0,0,0.6);
+  z-index: 1000;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  margin-top: 10px;
+  padding: 0.75rem 0;
+  text-align: left;
+}
+
+.account-menu:hover .dropdown-content {
+  display: block;
+}
+
+.dropdown-item {
+  color: var(--text-main);
+  padding: 12px 20px;
+  text-decoration: none;
+  display: block;
+  font-size: 0.95rem;
+  transition: all 0.2s ease;
+  cursor: pointer;
+}
+
+.dropdown-item:hover {
+  background-color: rgba(59, 130, 246, 0.1);
+  color: var(--accent);
+}
+
+.dropdown-header {
+  padding: 8px 20px;
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  font-weight: bold;
+}
+
+.dropdown-tier {
+  padding: 4px 20px 12px;
+  font-size: 1.1rem;
+  font-weight: bold;
+  color: white;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 8px;
+}
+
+.dropdown-divider {
+  height: 1px;
+  background-color: var(--border);
+  margin: 8px 0;
+}

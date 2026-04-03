@@ -246,7 +246,7 @@ const Dashboard = () => {
       <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div>
           <h1>Oracle Command Terminal</h1>
-          <p className="subtitle">Tier Protocol: <span style={{ color: 'var(--accent)', textTransform: 'uppercase' }}>{tier}</span></p>
+          <p className="subtitle">Operational Sector Dashboard</p>
         </div>
         <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
           <select value={selectedState} onChange={(e) => setSelectedState(e.target.value)}
@@ -256,7 +256,32 @@ const Dashboard = () => {
               <option key={st} value={st}>{st === 'VA' ? 'Virginia (VA)' : st === 'TX' ? 'Texas (TX)' : st === 'NY' ? 'New York (NY)' : st}</option>
             ))}
           </select>
-          <button onClick={logout} className="btn-secondary">Logout</button>
+
+          {/* JMc - [2026-04-03] - Technician Account Hub */}
+          <div className="account-menu">
+            <button className="btn-secondary" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              Account ▾
+            </button>
+            <div className="dropdown-content">
+              <div className="dropdown-header">Active Protocol</div>
+              <div className="dropdown-tier">
+                {tier === 'pro' ? 'Pro Tier' : 'Free Tier'}
+              </div>
+              
+              <a href="https://oracle.moderncyph3r.com/offering-page" className="dropdown-item">
+                {tier === 'pro' ? 'Manage Subscription' : 'Upgrade to Pro'}
+              </a>
+              
+              <a href="https://oracle.moderncyph3r.com/support" target="_blank" rel="noreferrer" className="dropdown-item">
+                Contact Support
+              </a>
+              
+              <div className="dropdown-divider"></div>
+              <div onClick={logout} className="dropdown-item" style={{ color: '#ef4444' }}>
+                Logout System
+              </div>
+            </div>
+          </div>
         </div>
       </header>
 
