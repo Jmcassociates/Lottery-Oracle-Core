@@ -53,9 +53,13 @@ const LandingPage = () => {
   const [recentDraws, setRecentDraws] = useState<Record<string, any>>({});
 
   useEffect(() => {
-    // JMc - [2026-04-01] - Trigger Mermaid re-render.
-    mermaid.contentLoaded();
-
+    // JMc - [2026-04-01] - Force Mermaid to scan the DOM after React mount.
+    const timer = setTimeout(() => {
+      mermaid.run({
+        querySelector: '.mermaid',
+      }).catch(err => console.error("Mermaid run failed:", err));
+    }, 200);
+    
     const ts = new Date().getTime();
     
     // Fetch Global Game Roster for Ticker
@@ -84,6 +88,8 @@ const LandingPage = () => {
       .then(res => res.json())
       .then(data => setJackpots(data))
       .catch(err => console.error("Failed jackpots load:", err));
+
+    return () => clearTimeout(timer);
   }, []);
 
   return (

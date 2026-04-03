@@ -42,8 +42,14 @@ const Dashboard = () => {
   const [numTickets, setNumTickets] = useState<number>(tier === 'pro' ? 20 : 5);
 
   useEffect(() => {
-    // JMc - [2026-04-01] - Trigger Mermaid re-render.
-    mermaid.contentLoaded();
+    // JMc - [2026-04-01] - Force Mermaid to scan the DOM after React has rendered the component.
+    // Using a small timeout to ensure the DOM is fully settled.
+    const timer = setTimeout(() => {
+      mermaid.run({
+        querySelector: '.mermaid',
+      }).catch(err => console.error("Mermaid run failed:", err));
+    }, 200);
+    return () => clearTimeout(timer);
   }, []);
 
   useEffect(() => {

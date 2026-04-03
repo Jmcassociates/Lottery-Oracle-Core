@@ -1,5 +1,12 @@
 # Project Progress: Lottery Oracle Dashboard
 
+### 2026-04-01 21:15 EDT - Phase 15: Oracle Heartbeat (Ticker v2.4)
+- **Animated Market Crawl:** Implemented a high-velocity CSS `@keyframes` animation for the Global Pulse Ticker. The roster now crawls seamlessly across the screen at 60s intervals.
+- **Backend Schema Hardening:** Upgraded `/api/games` to support a `games_full` object, enabling the frontend to ingest the complete 13-game roster (VA, TX, NY, NAT) with full state metadata.
+- **Seamless Looping Logic:** Engineered a "Track Doubling" technique in React to ensure zero white-space during ticker transitions.
+- **Veteran Interface Stabilization:** Confirmed the "Market Watch" aesthetic is correctly installed on both the landing page storefront and the internal technician terminal.
+- **Interactive Ticker:** Integrated a `hover:pause` state, allowing users to freeze the market crawl for manual inspection of specific matrix draws.
+
 ### 2026-04-01 20:30 EDT - Phase 14: Global Pulse Ticker & Pro-Tier Ergonomics (v2.3)
 - **High-Velocity Market Ticker:** Replaced static grids with a horizontal scrolling "Global Pulse Ticker" on both Landing and Dashboard sectors. Prevents vertical bloat as new states (CA, FL) are calibrated.
 - **Ergonomic De-cluttering:** Re-engineered the Pro Tier dashboard to prioritize utility. The "Mathematical Reality" section is now relocated below the Vault for Pro users, ensuring veterans have immediate access to generation tools and historical artifacts.
