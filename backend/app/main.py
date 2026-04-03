@@ -110,6 +110,7 @@ def run_sync_task():
         except Exception as mig_err:
             logger.error(f"Oracle - Manual Sync - [PHASE 1] Schema Alignment FAILED: {mig_err}")
 
+        import time
         for game_name, config in GAMES.items():
             logger.info(f"Oracle - Manual Sync - [PHASE 2] Initializing Stream for {game_name}...")
             
@@ -136,6 +137,8 @@ def run_sync_task():
                 log_entry.error_message = error_str
             
             db.commit()
+            # JMc - [2026-04-01] - Add a small delay to avoid API throttling on high-volume days
+            time.sleep(1)
 
         # Collect Final Metrics
         logger.info("Oracle - Manual Sync - [PHASE 3] Calculating Syndicate Pulse Metrics...")

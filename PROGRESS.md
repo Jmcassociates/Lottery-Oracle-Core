@@ -1,5 +1,10 @@
 # Project Progress: Lottery Oracle Dashboard
 
+### 2026-04-01 23:00 EDT - Phase 20: Sync Engine Deadlock Resolution
+- **Stale Log Cleanup Protocol:** Implemented a pre-boot cleanup in the FastAPI `lifespan` event. The system now automatically detects and marks "IMPORTING" sync logs older than 10 minutes as "FAILED (Interrupted)" upon server restart.
+- **UI Lock Resolution:** Confirmed this cleanup clears the persistent "8:29 PM" importing status on the Admin Dashboard, enabling technicians to re-trigger the synchronization protocol after a deployment or crash.
+- **Boot sequence hardening:** Integrated the `run_preboot_cleanup` function into the core application lifecycle to ensure high availability and self-healing state management in multi-instance Cloud Run environments.
+
 ### 2026-04-01 22:30 EDT - Phase 19: High-Volume Data Ingestion Optimization
 - **Pick 3 Performance Hardening:** Resolved the "Pick 3 Standoff" where the sync engine was choking on 10,000+ historical draws. Optimized `BasePickFetcher` to scope duplicate checks to the 200 most recent records per game variant.
 - **Query Efficiency:** Reduced database contention by decreasing commit batch sizes and filtering `existing_records` by specific game names instead of entire state codes.
