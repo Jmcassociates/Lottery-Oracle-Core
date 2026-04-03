@@ -371,8 +371,11 @@ class BasePickFetcher(LotteryFetcher):
         batch_size = 100
         # Process in reverse (oldest first) so we can stop if we hit known data
         raw_draws.sort(key=lambda x: x['date'])
+        
+        total_to_process = len(raw_draws)
+        logger.info(f"[{self.game_name}] Starting sync logic. Parsing {total_to_process} raw historical records.")
 
-        for draw in raw_draws:
+        for idx, draw in enumerate(raw_draws):
             actual_game_name = draw.get('game_name', self.game_name)
             draw_date = draw['date'].date()
 
@@ -393,6 +396,7 @@ class BasePickFetcher(LotteryFetcher):
 
                 if new_records % batch_size == 0:
                     db.commit()
+                    logger.info(f"[{self.game_name}] Progress: {idx}/{total_to_process} processed. {new_records} new records committed.")
 
         db.commit()
         logger.info(f"[{self.game_name}] Sync complete. Added {new_records} new draws.")
