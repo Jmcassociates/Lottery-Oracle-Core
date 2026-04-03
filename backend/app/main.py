@@ -42,17 +42,18 @@ def run_preboot_cleanup():
     db_gen = get_db()
     db = next(db_gen)
     try:
-        # Clear any "ghost" sync logs that were left in IMPORTING state
-        # after a server crash or deployment interruption.
-        ten_mins_ago = datetime.utcnow() - timedelta(minutes=10)
+        # JMc - [2026-04-01] - Wide-net purge of all "ghost" sync logs.
+        # If the server is rebooting, ANY log in 'IMPORTING' state is a zombie.
+        # We use a 24-hour window to ensure we catch everything regardless of TZ drift.
+        stale_threshold = datetime.utcnow() - timedelta(hours=24)
         stale_syncs = db.query(SyncLog).filter(
             SyncLog.status == "IMPORTING",
-            SyncLog.executed_at < ten_mins_ago
+            SyncLog.executed_at < datetime.utcnow() # Catch all current and past
         ).all()
         
         for s in stale_syncs:
             s.status = "FAILED"
-            s.error_message = "Protocol Interrupted: Server reboot or timeout."
+            s.error_message = "Protocol Interrupted: Server reboot or environment transition."
         
         if stale_syncs:
             db.commit()

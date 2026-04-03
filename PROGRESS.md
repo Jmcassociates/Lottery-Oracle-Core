@@ -1,5 +1,9 @@
 # Project Progress: Lottery Oracle Dashboard
 
+### 2026-04-01 23:45 EDT - Phase 21: Network Hardening & API Throttling
+- **API Breather Protocol:** Injected a 1-second `time.sleep()` between game syncs in the background protocol. This prevents rapid-fire requests to state lottery APIs (VA, TX, NY) which was triggering connection hangs and silent timeouts on Cloud Run.
+- **Resilient Looping:** Confirmed the resync protocol correctly identifies and logs each game variant (Day/Night) even when delayed, ensuring a full data sweep without triggering firewall blacklisting.
+
 ### 2026-04-01 23:00 EDT - Phase 20: Sync Engine Deadlock Resolution
 - **Stale Log Cleanup Protocol:** Implemented a pre-boot cleanup in the FastAPI `lifespan` event. The system now automatically detects and marks "IMPORTING" sync logs older than 10 minutes as "FAILED (Interrupted)" upon server restart.
 - **UI Lock Resolution:** Confirmed this cleanup clears the persistent "8:29 PM" importing status on the Admin Dashboard, enabling technicians to re-trigger the synchronization protocol after a deployment or crash.
