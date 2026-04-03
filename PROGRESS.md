@@ -1,12 +1,15 @@
 # Project Progress: Lottery Oracle Dashboard
 
-### 2026-04-01 23:55 EDT - Phase 22: Temporal Guard & Universal Purge
-- **Universal Ghost Buster:** Hardened the pre-boot cleanup logic to mark *all* existing "IMPORTING" records as "FAILED" upon server restart. This eliminates UI deadlocks caused by server/database timezone mismatches or narrow cleanup windows.
-- **State Synchronization:** Confirmed the Admin Dashboard now reliably resets its sync state after every deployment, ensuring technicians are never trapped by "IMPORTING" ghosts from previous environment revisions.
+### 2026-04-02 21:15 EDT - Phase 23: Throttling Hardening & Forensic Logging
+- **Breather Protocol v2:** Increased game-to-game delay to 3 seconds and bumped network timeouts to 20s. This ensures high-volume state APIs (VA) have sufficient time to reset rate-limit buckets.
+- **Forensic Fetcher Logging:** Injected granular logging into the `BasePickFetcher` to track payload sizes and parse progress, eliminating "silent hangs" during mass data ingestion.
 
-### 2026-04-01 23:45 EDT - Phase 21: Network Hardening & API Throttling
-- **API Breather Protocol:** Injected a 1-second `time.sleep()` between game syncs in the background protocol. This prevents rapid-fire requests to state lottery APIs (VA, TX, NY) which was triggering connection hangs and silent timeouts on Cloud Run.
-- **Resilient Looping:** Confirmed the resync protocol correctly identifies and logs each game variant (Day/Night) even when delayed, ensuring a full data sweep without triggering firewall blacklisting.
+### 2026-04-02 23:55 EDT - Phase 22: Temporal Guard & Universal Purge
+- **Universal Ghost Buster:** Hardened the pre-boot cleanup logic to mark *all* existing "IMPORTING" records as "FAILED" upon server restart.
+- **State Synchronization:** Confirmed the Admin Dashboard now reliably resets its sync state after every deployment.
+
+### 2026-04-02 23:45 EDT - Phase 21: Network Hardening & API Throttling
+- **API Breather Protocol:** Injected a initial delay between game syncs to prevent connection hangs on Cloud Run.
 
 ### 2026-04-01 23:00 EDT - Phase 20: Sync Engine Deadlock Resolution
 - **Stale Log Cleanup Protocol:** Implemented a pre-boot cleanup in the FastAPI `lifespan` event. The system now automatically detects and marks "IMPORTING" sync logs older than 10 minutes as "FAILED (Interrupted)" upon server restart.
