@@ -361,12 +361,13 @@ class BasePickFetcher(LotteryFetcher):
             logger.error(f"Failed to fetch data for {self.game_name}: {e}")
             return False
 
-        # JMc - [2026-04-01] - Optimization: Only fetch the most recent 100 records for the duplicate check.
-        # This prevents the 'Pick 3 Standoff' where the engine chokes on 10,000+ historical rows.
+        # JMc - [2026-04-02] - Removed the limit(200) optimization. 
+        # For 'Pick' games, the state APIs (VA) return the entire historical file. 
+        # We need a full-game-history existence check to avoid unique constraint violations.
         existing_records = {
             (d.game_name, d.draw_date) for d in db.query(DrawRecord.game_name, DrawRecord.draw_date).filter(
                 DrawRecord.game_name.startswith(self.game_name)
-            ).order_by(DrawRecord.draw_date.desc()).limit(200).all()
+            ).all()
         }
 
         new_records = 0
@@ -386,7 +387,7 @@ class BasePickFetcher(LotteryFetcher):
                 white_str = ",".join(str(x) for x in draw['white_balls'])
 
                 record = DrawRecord(
-                    state_code="VA",
+                    state_code=self.state_code,
                     game_name=actual_game_name,
                     draw_date=draw_date,
                     white_balls=white_str,
