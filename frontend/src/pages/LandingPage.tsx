@@ -73,17 +73,17 @@ const LandingPage = () => {
                   setRecentDraws(prev => ({...prev, [g.id]: history[0]}));
                 }
               })
-              .catch(err => console.error(`Failed history for ${g.id}`));
+              .catch(err => console.error(`Failed history for ${g.id}:`, err));
           });
         }
       })
-      .catch(err => console.error("Failed games load"));
+      .catch(err => console.error("Failed games load:", err));
 
     // Fetch live unauthenticated jackpots
     fetch(`${API_BASE}/api/jackpots?_t=${ts}`)
       .then(res => res.json())
       .then(data => setJackpots(data))
-      .catch(err => console.error("Failed jackpots load"));
+      .catch(err => console.error("Failed jackpots load:", err));
   }, []);
 
   return (

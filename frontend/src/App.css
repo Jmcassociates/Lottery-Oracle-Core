@@ -197,7 +197,7 @@ select {
   flex: 0 0 260px;
   background: var(--panel-bg);
   padding: 1.25rem;
-  borderRadius: 12px;
+  border-radius: 12px;
   border: 1px solid var(--border);
   transition: border-color 0.2s ease, transform 0.2s ease;
 }

@@ -1,5 +1,11 @@
 # Project Progress: Lottery Oracle Dashboard
 
+### 2026-04-01 20:30 EDT - Phase 14: Global Pulse Ticker & Pro-Tier Ergonomics (v2.3)
+- **High-Velocity Market Ticker:** Replaced static grids with a horizontal scrolling "Global Pulse Ticker" on both Landing and Dashboard sectors. Prevents vertical bloat as new states (CA, FL) are calibrated.
+- **Ergonomic De-cluttering:** Re-engineered the Pro Tier dashboard to prioritize utility. The "Mathematical Reality" section is now relocated below the Vault for Pro users, ensuring veterans have immediate access to generation tools and historical artifacts.
+- **Global Data Fetching:** Optimized frontend logic to pull the full 13-game roster (VA, TX, NY, NAT) into the ticker regardless of the user's primary state selection.
+- **Aesthetic Hardening:** Applied CSS masking and smooth-scroll parameters to the ticker to match the "Bloomberg Terminal" aesthetic required for high-signal syndicate management.
+
 ### 2026-04-01 19:15 EDT - Phase 13: Market Watch & Ghost Game Cleanup (v2.2)
 - **Landing Page Refactor (v2.2):** Fully implemented the "Market Watch" aesthetic for public-facing jackpot displays. Replaced the generic grid with high-signal cards including state labels (Virginia, Texas, New York, National).
 - **Retired Game Purge:** Removed the discontinued "Cash4Life" game from the frontend logic to align with the backend sync capabilities.
