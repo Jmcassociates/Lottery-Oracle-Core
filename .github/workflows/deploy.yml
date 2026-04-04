@@ -105,6 +105,12 @@ jobs:
     # ---------------------------------------------------------
     # FRONTEND DEPLOYMENT (React + Nginx Reverse Proxy)
     # ---------------------------------------------------------
+    # JMc - [2026-04-04] - Ensure the Lead Magnet PDF is bundled into the static assets
+    - name: Inject Lead Magnet into Frontend
+      run: |
+        mkdir -p frontend/public
+        cp ORACLE_DEAD_ZONE_REPORT.pdf frontend/public/
+
     # JMc - [2026-04-03] - Unified Gateway: Frontend now routes all /api traffic 
     # through its own Nginx proxy. No need to inject VITE_API_URL.
     - name: Build and Push Frontend Image
