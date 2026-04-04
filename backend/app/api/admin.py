@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy import func
 from app.core.database import get_db
 from app.core.models import User, DrawRecord, SyncLog
-from app.api.auth import get_current_admin_user
+from app.api.deps import get_current_admin_user
 from app.core.config import GAMES
 
 logger = logging.getLogger(__name__)

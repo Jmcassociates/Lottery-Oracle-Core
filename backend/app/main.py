@@ -8,7 +8,8 @@ from datetime import datetime, timedelta, timezone
 
 from app.core.database import engine, Base, get_db
 from app.core.models import DrawRecord, SavedTicketBatch, SavedTicket, User, SyncLog
-from app.core.security import get_current_user, create_access_token, ACCESS_TOKEN_EXPIRE_MINUTES
+from app.api.deps import get_current_user
+from app.core.security import create_access_token, ACCESS_TOKEN_EXPIRE_MINUTES
 from app.core.config import GAMES, SYNC_STATE
 from app.services.engine import LotteryMathEngine
 from app.services.permutation_engine import PermutationMathEngine

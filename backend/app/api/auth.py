@@ -17,6 +17,7 @@ from app.core.security import (
     get_password_hash, verify_password, create_access_token, 
     create_magic_link_token, ACCESS_TOKEN_EXPIRE_MINUTES, SECRET_KEY, ALGORITHM
 )
+from app.api.deps import get_current_user
 from app.services.email import EmailService
 
 logger = logging.getLogger(__name__)

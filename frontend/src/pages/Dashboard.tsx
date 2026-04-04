@@ -328,7 +328,7 @@ const Dashboard = () => {
         </div>
 
         <section className="control-panel">
-          <div style={{ display: 'flex', gap: '2rem', flex: 1 }}>
+          <div style={{ display: 'flex', gap: '2rem', flex: 1, alignItems: 'flex-end' }}>
             <div className="selector" style={{ flex: 1 }}>
               <label>Target Game Matrix:</label>
               <select value={selectedGame} onChange={(e) => setSelectedGame(e.target.value)}>
@@ -341,9 +341,9 @@ const Dashboard = () => {
                 style={{ padding: '0.75rem 1.5rem', background: 'var(--bg-color)', border: '1px solid var(--border)', color: 'var(--text-main)', borderRadius: '6px' }}
               />
             </div>
-          </div>
-          <div style={{ display: 'flex', alignItems: 'flex-end', paddingBottom: '2px' }}>
-            <button onClick={generateTickets} disabled={loading} className="btn-primary" style={{ height: 'calc(100% - 22px)' }}>{loading ? 'Compiling...' : 'Execute Generation'}</button>
+            <div style={{ display: 'flex', alignItems: 'flex-end' }}>
+              <button onClick={generateTickets} disabled={loading} className="btn-primary" style={{ padding: '0.75rem 2rem' }}>{loading ? 'Compiling...' : 'Execute Generation'}</button>
+            </div>
           </div>
         </section>
 
