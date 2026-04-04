@@ -70,3 +70,4 @@ logs/
 # Project Specific
 reportlab/*.pdf
 *.pdf
+!ORACLE_DEAD_ZONE_REPORT.pdf
