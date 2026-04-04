@@ -21,7 +21,12 @@ class EmailService:
         """
         is_manual = report_data.get("is_manual", False)
         sync_type = "FORCED MANUAL OVERRIDE" if is_manual else "AUTONOMOUS NIGHTLY CYCLE"
-        subject = f"[ORACLE SYSTEM PULSE] - {sync_type} - {datetime.now().strftime('%Y-%m-%d')}"
+        
+        import zoneinfo
+        tz = zoneinfo.ZoneInfo("America/New_York")
+        now_str = datetime.now(tz).strftime("%Y-%m-%d %I:%M:%S %p %Z")
+        
+        subject = f"[ORACLE SYSTEM PULSE] - {sync_type} - {datetime.now(tz).strftime('%Y-%m-%d')}"
         
         # Build the dynamic HTML list for games
         game_rows = ""
@@ -36,16 +41,18 @@ class EmailService:
                 completed_at = "N/A"
                 error_msg = None
 
-            color = "#10b981" if "Added" in status or "Up to date" in status else "#ef4444"
-            error_html = f'<br><span style="color:#ef4444; font-size:11px;"><strong>ERROR:</strong> {error_msg}</span>' if error_msg else ""
+            # JMc - [2026-04-04] - Robust accessibility: Use high-contrast green (#047857) for white backgrounds
+            # and bright red (#dc2626) for errors.
+            color = "#047857" if ("Added" in status or "Up to date" in status or "SUCCESS" in status) else "#dc2626"
+            error_html = f'<br><span style="color:#dc2626; font-size:11px;"><strong>ERROR:</strong> {error_msg}</span>' if error_msg else ""
             
             game_rows += f'''
             <tr>
-                <td style="padding:8px; border-bottom:1px solid #1e293b; color:#94a3b8; vertical-align:top;">
+                <td style="padding:8px; border-bottom:1px solid #e2e8f0; color:#475569; vertical-align:top;">
                     <strong>{game}</strong><br>
-                    <span style="font-size:11px; color:#64748b;">Completed: {completed_at}</span>
+                    <span style="font-size:11px; color:#94a3b8;">Completed: {completed_at}</span>
                 </td>
-                <td style="padding:8px; border-bottom:1px solid #1e293b; color:{color}; font-family:monospace; vertical-align:top;">
+                <td style="padding:8px; border-bottom:1px solid #e2e8f0; color:{color}; font-family:monospace; vertical-align:top; font-weight:bold;">
                     {status}
                     {error_html}
                 </td>
@@ -54,25 +61,28 @@ class EmailService:
 
         html_content = f"""
         <html>
-            <body style="background-color: #020617; color: #cbd5e1; font-family: sans-serif; padding: 20px;">
-                <div style="max-width: 600px; margin: 0 auto; background-color: #0f172a; border: 1px solid #1e293b; border-radius: 12px; padding: 30px;">
-                    <h1 style="color: #38bdf8; margin-top:0; border-bottom: 2px solid #38bdf8; padding-bottom: 10px;">SYSTEM PULSE</h1>
-                    <p style="color: #94a3b8; font-size: 12px; margin-top: -5px;">PROTOCOL: {sync_type}</p>
+            <body style="background-color: #f8fafc; color: #1e293b; font-family: sans-serif; padding: 20px;">
+                <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 30px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);">
+                    <h1 style="color: #0284c7; margin-top:0; border-bottom: 2px solid #0284c7; padding-bottom: 10px; font-size: 24px;">ORACLE SYSTEM PULSE</h1>
+                    <div style="background-color: #f1f5f9; padding: 10px 15px; border-radius: 6px; margin-bottom: 20px;">
+                        <p style="color: #475569; font-size: 13px; margin: 0;"><strong>PROTOCOL:</strong> {sync_type}</p>
+                        <p style="color: #475569; font-size: 13px; margin: 5px 0 0 0;"><strong>TERMINATED:</strong> {now_str}</p>
+                    </div>
                     
-                    <h2 style="color: #ffffff; font-size: 16px; margin-top: 20px;">01. Synchronization Status</h2>
+                    <h2 style="color: #1e293b; font-size: 16px; margin-top: 20px; text-transform: uppercase; letter-spacing: 1px;">01. Synchronization Status</h2>
                     <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px;">
                         {game_rows}
                     </table>
 
-                    <h2 style="color: #ffffff; font-size: 16px; margin-top: 20px;">02. Syndicate Metrics</h2>
-                    <p style="margin: 5px 0;">Total Technicians: <strong style="color:#10b981;">{report_data.get('user_total', 0)}</strong></p>
-                    <p style="margin: 5px 0;">Pro Tier Assets: <strong style="color:#10b981;">{report_data.get('user_pro', 0)}</strong></p>
+                    <h2 style="color: #1e293b; font-size: 16px; margin-top: 20px; text-transform: uppercase; letter-spacing: 1px;">02. Syndicate Metrics</h2>
+                    <p style="margin: 5px 0; color: #475569;">Total Technicians: <strong style="color:#0284c7;">{report_data.get('user_total', 0)}</strong></p>
+                    <p style="margin: 5px 0; color: #475569;">Pro Tier Assets: <strong style="color:#0284c7;">{report_data.get('user_pro', 0)}</strong></p>
                     
-                    <h2 style="color: #ffffff; font-size: 16px; margin-top: 20px;">03. Database Vitality</h2>
-                    <p style="font-size: 12px; color: #94a3b8; font-family: monospace;">Total Draw Records: {report_data.get('total_records', 0)}</p>
+                    <h2 style="color: #1e293b; font-size: 16px; margin-top: 20px; text-transform: uppercase; letter-spacing: 1px;">03. Database Vitality</h2>
+                    <p style="font-size: 12px; color: #64748b; font-family: monospace;">Total Draw Records: {report_data.get('total_records', 0)}</p>
                     
-                    <hr style="border: 0; border-top: 1px solid #1e293b; margin: 30px 0;">
-                    <p style="font-size: 10px; color: #475569; text-align: center;">CONFIDENTIAL ADMINISTRATIVE TRANSMISSION // JMc Associates LLC</p>
+                    <hr style="border: 0; border-top: 1px solid #e2e8f0; margin: 30px 0;">
+                    <p style="font-size: 10px; color: #94a3b8; text-align: center; text-transform: uppercase; letter-spacing: 2px;">CONFIDENTIAL ADMINISTRATIVE TRANSMISSION // JMc Associates LLC</p>
                 </div>
             </body>
         </html>
