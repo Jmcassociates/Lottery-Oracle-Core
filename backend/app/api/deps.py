@@ -26,19 +26,23 @@ def get_current_user(db: Session = Depends(get_db), token: str = Depends(oauth2_
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         email: str = payload.get("sub")
         if email is None:
+            logger.warning("Oracle - Auth - Token payload missing 'sub' claim.")
             raise credentials_exception
-    except JWTError:
+    except JWTError as e:
+        logger.warning(f"Oracle - Auth - JWT Decode Error: {e}")
         raise credentials_exception
         
     user = db.query(User).filter(User.email == email).first()
     if user is None:
+        logger.warning(f"Oracle - Auth - User {email} not found in database.")
         raise credentials_exception
         
     # Killswitch check
     if not user.is_active:
+        logger.error(f"Oracle - Auth - Blocked access for deactivated account: {email}")
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="ACCOUNT DEACTIVATED"
+            detail="ACCOUNT DEACTIVATED: Protocol access revoked by administrator."
         )
         
     return user
@@ -48,8 +52,9 @@ def get_current_admin_user(current_user: User = Depends(get_current_user)):
     JMc - [2026-04-04] - Admin-only dependency.
     """
     if not current_user.is_admin:
+        logger.error(f"Oracle - Auth - Administrative clearance rejected for user: {current_user.email}")
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Administrative clearance required."
+            detail="Technician clearance rejected: Administrative privileges required."
         )
     return current_user

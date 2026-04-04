@@ -19,19 +19,45 @@ class EmailService:
         JMc - [2026-03-18] - Dispatches the daily 'Executive Briefing' to the lead architect.
         Contains database stats, sync status, and system alerts.
         """
-        subject = f"[ORACLE SYSTEM PULSE] - {datetime.now().strftime('%Y-%m-%d')}"
+        is_manual = report_data.get("is_manual", False)
+        sync_type = "FORCED MANUAL OVERRIDE" if is_manual else "AUTONOMOUS NIGHTLY CYCLE"
+        subject = f"[ORACLE SYSTEM PULSE] - {sync_type} - {datetime.now().strftime('%Y-%m-%d')}"
         
         # Build the dynamic HTML list for games
         game_rows = ""
-        for game, status in report_data.get("sync_results", {}).items():
+        for game, data in report_data.get("sync_results", {}).items():
+            if isinstance(data, dict):
+                status = data.get("status", "UNKNOWN")
+                completed_at = data.get("completed_at", "N/A")
+                error_msg = data.get("error")
+            else:
+                # Legacy fallback
+                status = data
+                completed_at = "N/A"
+                error_msg = None
+
             color = "#10b981" if "Added" in status or "Up to date" in status else "#ef4444"
-            game_rows += f'<tr><td style="padding:8px; border-bottom:1px solid #1e293b; color:#94a3b8;">{game}</td><td style="padding:8px; border-bottom:1px solid #1e293b; color:{color}; font-family:monospace;">{status}</td></tr>'
+            error_html = f'<br><span style="color:#ef4444; font-size:11px;"><strong>ERROR:</strong> {error_msg}</span>' if error_msg else ""
+            
+            game_rows += f'''
+            <tr>
+                <td style="padding:8px; border-bottom:1px solid #1e293b; color:#94a3b8; vertical-align:top;">
+                    <strong>{game}</strong><br>
+                    <span style="font-size:11px; color:#64748b;">Completed: {completed_at}</span>
+                </td>
+                <td style="padding:8px; border-bottom:1px solid #1e293b; color:{color}; font-family:monospace; vertical-align:top;">
+                    {status}
+                    {error_html}
+                </td>
+            </tr>
+            '''
 
         html_content = f"""
         <html>
             <body style="background-color: #020617; color: #cbd5e1; font-family: sans-serif; padding: 20px;">
                 <div style="max-width: 600px; margin: 0 auto; background-color: #0f172a; border: 1px solid #1e293b; border-radius: 12px; padding: 30px;">
                     <h1 style="color: #38bdf8; margin-top:0; border-bottom: 2px solid #38bdf8; padding-bottom: 10px;">SYSTEM PULSE</h1>
+                    <p style="color: #94a3b8; font-size: 12px; margin-top: -5px;">PROTOCOL: {sync_type}</p>
                     
                     <h2 style="color: #ffffff; font-size: 16px; margin-top: 20px;">01. Synchronization Status</h2>
                     <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px;">

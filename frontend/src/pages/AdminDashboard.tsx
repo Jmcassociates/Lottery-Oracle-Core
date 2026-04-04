@@ -69,6 +69,7 @@ const AdminDashboard = () => {
         setStats(statsData);
         setUsers(await usersRes.json());
         setLogs(logsData);
+        setError(null); // Clear previous errors on success
 
         // JMc - [2026-03-31] - Source of Truth: Check the actual DB-backed backend sync lock
         if (statsData.sync_active) {
@@ -79,10 +80,15 @@ const AdminDashboard = () => {
             if (pollInterval.current) stopPolling();
         }
       } else {
-        setError("Technician clearance rejected by API.");
+        // JMc - [2026-04-04] - Soft Error: Don't kill the UI, just warn the technician.
+        if (statsRes.status === 403) {
+            setError("Clearance Error: API rejected credentials. Verify administrative status.");
+        } else {
+            setError("Communications Interrupted: The Vault is unreachable.");
+        }
       }
     } catch (e) {
-      setError("Communication failure with the Vault.");
+      setError("Critical Link Failure: Network protocol timeout.");
     } finally {
       setLoading(false);
     }
@@ -167,7 +173,7 @@ const AdminDashboard = () => {
 
   return (
     <div className="admin-layout" style={{ backgroundColor: '#020617', minHeight: '100vh', color: '#f8fafc', fontFamily: 'Inter, sans-serif', padding: '40px' }}>
-      <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #1e293b', paddingBottom: '20px', marginBottom: '40px' }}>
+      <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div>
           <h1 style={{ margin: 0, fontSize: '24px', fontWeight: 800, color: '#ffffff', textTransform: 'uppercase', letterSpacing: '2px' }}>Oracle War Room</h1>
           <p style={{ margin: '5px 0 0 0', color: '#94a3b8', fontSize: '14px' }}>Administrative Pulse & Syndicate Control</p>
@@ -179,9 +185,13 @@ const AdminDashboard = () => {
         </div>
       </header>
 
-      {error && <div style={{ background: '#450a0a', border: '1px solid #ef4444', color: '#fca5a5', padding: '15px', borderRadius: '8px', marginBottom: '30px' }}>{error}</div>}
+      {error && (
+        <div style={{ background: '#450a0a', border: '1px solid #ef4444', color: '#fca5a5', padding: '15px', borderRadius: '8px', marginBottom: '30px', marginTop: '20px' }}>
+            <strong>System Alarm:</strong> {error}
+        </div>
+      )}
 
-      <div className="stats-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '20px', marginBottom: '40px' }}>
+      <div className="stats-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '20px', marginBottom: '40px', marginTop: error ? '0' : '40px' }}>
         <div style={{ background: '#0f172a', border: '1px solid #1e293b', padding: '20px', borderRadius: '12px' }}>
           <span style={{ fontSize: '12px', color: '#94a3b8', textTransform: 'uppercase' }}>Total Technicians</span>
           <div style={{ fontSize: '32px', fontWeight: 'bold', color: '#38bdf8' }}>{stats?.syndicate_metrics.total_users || 0}</div>

@@ -25,7 +25,7 @@ def get_admin_stats(db: Session = Depends(get_db), current_admin: User = Depends
     
     # JMc - [2026-04-04] - Robust State Management: Use the true global lock, not just DB records,
     # to prevent the UI from prematurely unlocking during the 3-second breather gaps between games.
-    sync_active = SYNC_STATE.get("is_syncing", False)
+    sync_active = SYNC_STATE.get("is_syncing", False) or SYNC_STATE.get("active", False)
     
     # Fallback to DB check in case the global state was lost but a ghost record exists
     if not sync_active:

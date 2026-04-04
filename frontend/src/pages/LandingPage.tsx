@@ -138,7 +138,7 @@ const LandingPage = () => {
                    {recentDraws[game.id].white_balls.slice(0, 5).map((w: number, i: number) => (
                      <span key={i} style={{ width: '22px', height: '22px', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--ball-bg)', color: 'var(--ball-text)', borderRadius: '50%', fontWeight: 'bold', fontSize: '0.7rem' }}>{w.toString().padStart(2, '0')}</span>
                    ))}
-                   {recentDraws[game.id].special_ball !== null && (
+                   {(game as any).special_max > 0 && recentDraws[game.id].special_ball !== null && (
                      <span style={{ width: '22px', height: '22px', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--special-ball-bg)', color: 'white', borderRadius: '50%', fontWeight: 'bold', fontSize: '0.7rem' }}>
                        {recentDraws[game.id].special_ball.toString().padStart(2, '0')}
                      </span>

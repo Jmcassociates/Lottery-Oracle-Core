@@ -96,77 +96,117 @@ app.include_router(auth.router, prefix="/api/auth", tags=["auth"])
 app.include_router(admin.router, prefix="/api/admin", tags=["admin"])
 
 
-def run_sync_task():
+def run_sync_task(is_manual: bool = False):
     # DB Lock managed by SyncLog entries
     logger.info("Oracle - Manual Sync - [PHASE 0] Initializing Background Protocol...")
     SYNC_STATE["is_syncing"] = True
     sync_results = {}
-    db = next(get_db())
     
     try:
         # JMc - [2026-03-31] - Migration Phase
         logger.info("Oracle - Manual Sync - [PHASE 1] Verification of Database Schema...")
+        db_mig = next(get_db())
         try:
             run_schema_migration()
             run_nat_migration()
             logger.info("Oracle - Manual Sync - [PHASE 1] Schema Alignment Confirmed.")
         except Exception as mig_err:
             logger.error(f"Oracle - Manual Sync - [PHASE 1] Schema Alignment FAILED: {mig_err}")
+        finally:
+            db_mig.close()
 
         import time
+        import zoneinfo
+        tz = zoneinfo.ZoneInfo("America/New_York")
+
         for game_name, config in GAMES.items():
             logger.info(f"Oracle - Manual Sync - [PHASE 2] Initializing Stream for {game_name}...")
             
-            # Record start of attempt
-            log_entry = SyncLog(game_name=game_name, status="IMPORTING", new_records=0)
-            db.add(log_entry)
-            db.commit()
-            
+            # JMc - [2026-04-04] - Fresh Session per Game: 
+            # Prevents session pollution and minimizes lock duration in SQLite.
+            db = next(get_db())
             try:
+                # Record start of attempt
+                log_entry = SyncLog(game_name=game_name, status="IMPORTING", new_records=0)
+                db.add(log_entry)
+                db.commit()
+                
                 fetcher = config["fetcher"]()
                 logger.info(f"Oracle - Manual Sync - [PHASE 2] Connecting to {game_name} API...")
                 new_count = fetcher.sync_to_db(db)
                 
-                log_entry.status = "SUCCESS" if new_count > 0 else "UP_TO_DATE"
-                log_entry.new_records = new_count
-                sync_results[game_name] = f"Added {new_count} new draws." if new_count > 0 else "Up to date."
-                logger.info(f"Oracle - Manual Sync - [PHASE 2] {game_name} ingestion successful (+{new_count}).")
+                # JMc - [2026-04-04] - Robust Type Check: sync_to_db returns False on exception.
+                if new_count is False:
+                    log_entry.status = "FAILED"
+                    log_entry.error_message = "Fetcher internal exception. Check system logs."
+                    sync_results[game_name] = {
+                        "status": "FAILED",
+                        "completed_at": datetime.now(tz).strftime("%I:%M:%S %p %Z"),
+                        "error": log_entry.error_message
+                    }
+                else:
+                    log_entry.status = "SUCCESS" if new_count > 0 else "UP_TO_DATE"
+                    log_entry.new_records = new_count
+                    sync_results[game_name] = {
+                        "status": f"Added {new_count} new draws." if new_count > 0 else "Up to date.",
+                        "completed_at": datetime.now(tz).strftime("%I:%M:%S %p %Z"),
+                        "error": None
+                    }
+                    logger.info(f"Oracle - Manual Sync - [PHASE 2] {game_name} ingestion successful (+{new_count}).")
                 
+                db.commit()
             except Exception as e:
                 error_str = f"Ingestion Failure: {str(e)}"
                 logger.error(f"Oracle - Manual Sync - [PHASE 2] {game_name} CRITICAL FAILURE: {e}")
-                sync_results[game_name] = f"FAILED: {str(e)[:50]}"
-                log_entry.status = "FAILED"
-                log_entry.error_message = error_str
+                sync_results[game_name] = {
+                    "status": "FAILED",
+                    "completed_at": datetime.now(tz).strftime("%I:%M:%S %p %Z"),
+                    "error": str(e)[:100]
+                }
+                
+                # Try to log the failure if the session is still viable
+                try:
+                    log_entry.status = "FAILED"
+                    log_entry.error_message = error_str
+                    db.commit()
+                except:
+                    pass
+            finally:
+                db.close()
             
-            db.commit()
             # JMc - [2026-04-01] - Increase delay to 3s to ensure state APIs (VA) reset rate limits.
             time.sleep(3)
 
         # Collect Final Metrics
-        logger.info("Oracle - Manual Sync - [PHASE 3] Calculating Syndicate Pulse Metrics...")
-        user_total = db.query(User).count()
-        user_pro = db.query(User).filter(User.tier == "pro").count()
-        total_records = db.query(DrawRecord).count()
+        db_final = next(get_db())
+        try:
+            logger.info("Oracle - Manual Sync - [PHASE 3] Calculating Syndicate Pulse Metrics...")
+            user_total = db_final.query(User).count()
+            user_pro = db_final.query(User).filter(User.tier == "pro").count()
+            total_records = db_final.query(DrawRecord).count()
 
-        # Dispatch the Executive Briefing
-        report_data = {
-            "sync_results": sync_results,
-            "user_total": user_total,
-            "user_pro": user_pro,
-            "total_records": total_records
-        }
-        
-        admin_email = os.getenv("ADMIN_EMAIL", "james@moderncyph3r.com")
-        EmailService.send_admin_report(admin_email, report_data)
-        logger.info("Oracle - Manual Sync - [PHASE 4] Executive Briefing dispatched. Protocol terminated.")
+            # Dispatch the Executive Briefing
+            report_data = {
+                "is_manual": is_manual,
+                "sync_results": sync_results,
+                "user_total": user_total,
+                "user_pro": user_pro,
+                "total_records": total_records
+            }
+            
+            admin_email = os.getenv("ADMIN_EMAIL", "james@moderncyph3r.com")
+            EmailService.send_admin_report(admin_email, report_data)
+            logger.info("Oracle - Manual Sync - [PHASE 4] Executive Briefing dispatched. Protocol terminated.")
+        finally:
+            db_final.close()
 
     except Exception as global_err:
         logger.error(f"Oracle - Manual Sync - [PHASE 99] GLOBAL PROTOCOL FAILURE: {global_err}")
     finally:
         # DB Lock released naturally as status transitions from IMPORTING
         SYNC_STATE["is_syncing"] = False
-        db.close()
+        SYNC_STATE["active"] = False # JMc - Support both legacy and new key for consistency
+        logger.info("Oracle - Manual Sync - Protocol terminated. Global lock released.")
 
 
 @app.post("/api/admin/sync")
@@ -264,7 +304,8 @@ def list_games(state: str = None):
         games_full.append({
             "id": k,
             "name": k.replace("Virginia", "").replace("Texas", "").replace("NewYork", ""),
-            "state": state_label
+            "state": state_label,
+            "special_max": v.get("special_max", 0)
         })
     
     return {
