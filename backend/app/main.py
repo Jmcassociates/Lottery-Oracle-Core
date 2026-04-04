@@ -216,13 +216,15 @@ def trigger_sync(request: Request, db: Session = Depends(get_db)):
     """
     ghl_token = request.headers.get("X-GHL-Verify")
     is_authorized = False
+    is_manual_trigger = True
 
-    # 1. Check for the Cloud Scheduler/GHL secret
+    # 1. Check for the Cloud Scheduler/GHL secret (Autonomous)
     if ghl_token == GHL_WEBHOOK_SECRET:
         is_authorized = True
+        is_manual_trigger = False
         logger.info("Oracle - Manual Sync - Verified Cron/GHL trigger received.")
     
-    # 2. Check for a valid Admin JWT session
+    # 2. Check for a valid Admin JWT session (Manual)
     else:
         auth_header = request.headers.get("Authorization")
         if auth_header and auth_header.startswith("Bearer "):
@@ -245,7 +247,6 @@ def trigger_sync(request: Request, db: Session = Depends(get_db)):
         raise HTTPException(status_code=403, detail="Administrative Clearance Required.")
         
     # JMc - [2026-03-31] - DB-backed Lock Check.
-    # Prevents collisions in multi-instance environments.
     ten_mins_ago = datetime.utcnow() - timedelta(minutes=10)
     active_syncs = db.query(SyncLog).filter(
         SyncLog.status == "IMPORTING",
@@ -257,9 +258,9 @@ def trigger_sync(request: Request, db: Session = Depends(get_db)):
         raise HTTPException(status_code=409, detail="A synchronization protocol is already active in the cluster.")
 
 
-    logger.info("Oracle - Manual Sync - Spawning background thread.")
+    logger.info(f"Oracle - Manual Sync - Spawning background thread. Manual={is_manual_trigger}")
     import threading
-    thread = threading.Thread(target=run_sync_task, args=(True,))
+    thread = threading.Thread(target=run_sync_task, args=(is_manual_trigger,))
     thread.start()
     return {"status": "Sync triggered in background"}
 
