@@ -7,7 +7,7 @@ from sqlalchemy import func
 from app.core.database import get_db
 from app.core.models import User, DrawRecord, SyncLog
 from app.api.deps import get_current_admin_user
-from app.core.config import GAMES
+from app.core.config import GAMES, SYNC_STATE
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -23,10 +23,15 @@ def get_admin_stats(db: Session = Depends(get_db), current_admin: User = Depends
     pro_tier = db.query(User).filter(User.tier == "pro").count()
     free_tier = db.query(User).filter(User.tier == "free").count()
     
-    # Simple check for sync activity in the last 10 minutes
-    from datetime import datetime, timedelta
-    ten_mins_ago = datetime.utcnow() - timedelta(minutes=10)
-    sync_active = db.query(SyncLog).filter(SyncLog.status == "IMPORTING", SyncLog.executed_at >= ten_mins_ago).count() > 0
+    # JMc - [2026-04-04] - Robust State Management: Use the true global lock, not just DB records,
+    # to prevent the UI from prematurely unlocking during the 3-second breather gaps between games.
+    sync_active = SYNC_STATE.get("is_syncing", False)
+    
+    # Fallback to DB check in case the global state was lost but a ghost record exists
+    if not sync_active:
+        from datetime import datetime, timedelta
+        ten_mins_ago = datetime.utcnow() - timedelta(minutes=10)
+        sync_active = db.query(SyncLog).filter(SyncLog.status == "IMPORTING", SyncLog.executed_at >= ten_mins_ago).count() > 0
     
     # 24h acquisition
     one_day_ago = datetime.utcnow() - timedelta(days=1)

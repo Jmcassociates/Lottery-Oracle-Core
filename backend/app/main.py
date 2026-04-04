@@ -99,6 +99,7 @@ app.include_router(admin.router, prefix="/api/admin", tags=["admin"])
 def run_sync_task():
     # DB Lock managed by SyncLog entries
     logger.info("Oracle - Manual Sync - [PHASE 0] Initializing Background Protocol...")
+    SYNC_STATE["is_syncing"] = True
     sync_results = {}
     db = next(get_db())
     
@@ -164,6 +165,7 @@ def run_sync_task():
         logger.error(f"Oracle - Manual Sync - [PHASE 99] GLOBAL PROTOCOL FAILURE: {global_err}")
     finally:
         # DB Lock released naturally as status transitions from IMPORTING
+        SYNC_STATE["is_syncing"] = False
         db.close()
 
 
@@ -202,7 +204,7 @@ def trigger_sync(request: Request, db: Session = Depends(get_db)):
         logger.warning(f"Unauthorized sync attempt blocked from IP: {request.client.host}")
         raise HTTPException(status_code=403, detail="Administrative Clearance Required.")
         
-        # JMc - [2026-03-31] - DB-backed Lock Check.
+    # JMc - [2026-03-31] - DB-backed Lock Check.
     # Prevents collisions in multi-instance environments.
     ten_mins_ago = datetime.utcnow() - timedelta(minutes=10)
     active_syncs = db.query(SyncLog).filter(
@@ -210,7 +212,7 @@ def trigger_sync(request: Request, db: Session = Depends(get_db)):
         SyncLog.executed_at >= ten_mins_ago
     ).count()
 
-    if active_syncs > 0:
+    if active_syncs > 0 or SYNC_STATE.get("is_syncing", False):
         logger.warning("Oracle - Manual Sync - Trigger rejected: DB-backed lock active.")
         raise HTTPException(status_code=409, detail="A synchronization protocol is already active in the cluster.")
 
@@ -271,11 +273,15 @@ def list_games(state: str = None):
     }
 
 @app.get("/api/jackpots")
-def get_live_jackpots(state: str = "VA"):
+def get_live_jackpots(state: str = None):
     """
-    JMc - [2026-03-18] - Return jackpots filtered by the active state.
+    JMc - [2026-04-04] - Global Pulse Upgrade. 
+    Returns all jackpots if no state is specified, otherwise filters.
     """
     all_jackpots = JackpotScraper.get_live_data(GAMES)
+    if not state:
+        return all_jackpots
+        
     filtered = {}
     for game_name, data in all_jackpots.items():
         if game_name in GAMES and GAMES[game_name]["state"] in ("NAT", state):

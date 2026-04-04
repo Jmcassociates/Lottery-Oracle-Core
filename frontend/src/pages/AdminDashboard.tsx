@@ -246,11 +246,15 @@ const AdminDashboard = () => {
           <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
             {stats && Object.entries(stats.sync_health).map(([game, data]) => {
                 const inProgress = logs.find(l => l.game_name === game && l.status === 'IMPORTING');
-                const statusColor = inProgress ? '#f59e0b' : (data.status === 'Up to date' ? '#10b981' : '#ef4444');
+                
+                // JMc - [2026-04-04] - Robust Health Verification: Accept standard success states as healthy (Green)
+                const isHealthy = ['SUCCESS', 'UP_TO_DATE', 'UP TO DATE'].includes(data.status.toUpperCase().replace('-', '_'));
+                const statusColor = inProgress ? '#f59e0b' : (isHealthy ? '#10b981' : '#ef4444');
                 const statusText = inProgress ? 'IMPORTING...' : data.status;
+                
                 return (
                     <div key={game} style={{ borderLeft: `3px solid ${statusColor}`, paddingLeft: '15px' }}>
-                        <div style={{ fontSize: '14px', fontWeight: 'bold' }}>{game.replace('_', ' ')}</div>
+                        <div style={{ fontSize: '14px', fontWeight: 'bold', color: '#f8fafc' }}>{game.replace('_', ' ')}</div>
                         <div style={{ fontSize: '12px', color: statusColor, fontWeight: inProgress ? 'bold' : 'normal' }}>{statusText}</div>
                         <div style={{ fontSize: '11px', color: '#64748b' }}>Last Draw: {data.last_sync}</div>
                     </div>
