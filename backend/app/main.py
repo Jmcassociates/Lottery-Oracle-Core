@@ -259,7 +259,7 @@ def trigger_sync(request: Request, db: Session = Depends(get_db)):
 
     logger.info("Oracle - Manual Sync - Spawning background thread.")
     import threading
-    thread = threading.Thread(target=run_sync_task)
+    thread = threading.Thread(target=run_sync_task, args=(True,))
     thread.start()
     return {"status": "Sync triggered in background"}
 
