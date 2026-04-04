@@ -88,7 +88,9 @@ jobs:
         service: ${{ env.BACKEND_SERVICE_NAME }}
         region: ${{ env.REGION }}
         image: ${{ env.GAR_LOCATION }}/${{ env.BACKEND_SERVICE_NAME }}:${{ github.sha }}
-        flags: '--allow-unauthenticated --add-cloudsql-instances=${{ env.PROJECT_ID }}:${{ env.REGION }}:oracle-db-instance --no-cpu-throttling'
+        # JMc - [2026-04-04] - Switched back to cpu-throttling to save massive 24/7 costs.
+        # Now that syncs run as Jobs, the web service can safely idle.
+        flags: '--allow-unauthenticated --add-cloudsql-instances=${{ env.PROJECT_ID }}:${{ env.REGION }}:oracle-db-instance --cpu-throttling'
         env_vars: |
           DATABASE_URL=${{ secrets.PROD_DATABASE_URL }}
           JWT_SECRET=${{ secrets.JWT_SECRET }}
@@ -101,6 +103,24 @@ jobs:
           SMTP_PASSWORD=${{ secrets.SMTP_PASSWORD }}
           SMTP_FROM_EMAIL=${{ secrets.SMTP_FROM_EMAIL }}
           ADMIN_EMAIL=james@moderncyph3r.com
+          PROJECT_ID=${{ env.PROJECT_ID }}
+          REGION=${{ env.REGION }}
+
+    # ---------------------------------------------------------
+    # CLOUD RUN JOB (High-Performance Sync Engine)
+    # ---------------------------------------------------------
+    - name: Deploy Oracle Sync Job
+      run: |-
+        gcloud run jobs deploy oracle-sync-job \
+          --image "${GAR_LOCATION}/${BACKEND_SERVICE_NAME}:${GITHUB_SHA}" \
+          --region "${{ env.REGION }}" \
+          --command "python" \
+          --args "run_sync.py" \
+          --tasks 1 \
+          --max-retries 0 \
+          --task-timeout 600s \
+          --set-cloudsql-instances "${{ env.PROJECT_ID }}:${{ env.REGION }}:oracle-db-instance" \
+          --set-env-vars "DATABASE_URL=${{ secrets.PROD_DATABASE_URL }},JWT_SECRET=${{ secrets.JWT_SECRET }},GHL_WEBHOOK_SECRET=${{ secrets.GHL_WEBHOOK_SECRET }},SMTP_HOST=${{ secrets.SMTP_HOST }},SMTP_PORT=${{ secrets.SMTP_PORT }},SMTP_USER=${{ secrets.SMTP_USER }},SMTP_PASSWORD=${{ secrets.SMTP_PASSWORD }},SMTP_FROM_EMAIL=${{ secrets.SMTP_FROM_EMAIL }},ADMIN_EMAIL=james@moderncyph3r.com"
 
     # ---------------------------------------------------------
     # FRONTEND DEPLOYMENT (React + Nginx Reverse Proxy)

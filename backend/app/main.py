@@ -212,7 +212,9 @@ def run_sync_task(is_manual: bool = False):
 @app.post("/api/admin/sync")
 def trigger_sync(request: Request, db: Session = Depends(get_db)):
     """
-    JMc - [2026-03-28] - Flexible Sync Trigger.
+    JMc - [2026-04-04] - Cloud Run Job Orchestrator.
+    Triggers the standalone 'oracle-sync-job' instead of a local thread.
+    This allows the web service to scale to zero and saves massive CPU costs.
     """
     ghl_token = request.headers.get("X-GHL-Verify")
     is_authorized = False
@@ -222,7 +224,7 @@ def trigger_sync(request: Request, db: Session = Depends(get_db)):
     if ghl_token == GHL_WEBHOOK_SECRET:
         is_authorized = True
         is_manual_trigger = False
-        logger.info("Oracle - Manual Sync - Verified Cron/GHL trigger received.")
+        logger.info("Oracle - Sync Request - Verified Cron/GHL trigger received.")
     
     # 2. Check for a valid Admin JWT session (Manual)
     else:
@@ -238,9 +240,9 @@ def trigger_sync(request: Request, db: Session = Depends(get_db)):
                     user = db.query(User).filter(User.email == email).first()
                     if user and user.is_admin:
                         is_authorized = True
-                        logger.info(f"Oracle - Manual Sync - Verified Admin session for {email}.")
+                        logger.info(f"Oracle - Sync Request - Verified Admin session for {email}.")
             except Exception as e:
-                logger.warning(f"Oracle - Manual Sync - JWT verification failed: {e}")
+                logger.warning(f"Oracle - Sync Request - JWT verification failed: {e}")
 
     if not is_authorized:
         logger.warning(f"Unauthorized sync attempt blocked from IP: {request.client.host}")
@@ -254,15 +256,55 @@ def trigger_sync(request: Request, db: Session = Depends(get_db)):
     ).count()
 
     if active_syncs > 0 or SYNC_STATE.get("is_syncing", False):
-        logger.warning("Oracle - Manual Sync - Trigger rejected: DB-backed lock active.")
-        raise HTTPException(status_code=409, detail="A synchronization protocol is already active in the cluster.")
+        logger.warning("Oracle - Sync Request - Rejected: Protocol already active.")
+        raise HTTPException(status_code=409, detail="A synchronization protocol is already active.")
 
+    # JMc - [2026-04-04] - Execute Cloud Run Job
+    logger.info(f"Oracle - Sync Request - Dispatching Cloud Run Job. Manual={is_manual_trigger}")
+    
+    try:
+        from google.cloud import run_v2
+        
+        client = run_v2.JobsClient()
+        project_id = os.getenv("PROJECT_ID", "law-of-large-numbers")
+        region = os.getenv("REGION", "us-east1")
+        job_name = f"projects/{project_id}/locations/{region}/jobs/oracle-sync-job"
+        
+        # Override environment variables for the specific execution
+        overrides = {
+            "container_overrides": [
+                {
+                    "env": [
+                        {"name": "IS_MANUAL_SYNC", "value": "true" if is_manual_trigger else "false"}
+                    ]
+                }
+            ]
+        }
+        
+        request_exec = run_v2.RunJobRequest(
+            name=job_name,
+            overrides=overrides
+        )
+        
+        operation = client.run_job(request=request_exec)
+        logger.info(f"Oracle - Sync Request - Job dispatched: {operation.operation.name}")
+        
+        # JMc - Immediately signal the UI that we are "IMPORTING" via the DB lock
+        # This bridges the gap until the Job starts writing its own logs.
+        # But wait, the Job will write the Global lock immediately.
+        
+        return {"status": "Sync Job Triggered", "job_id": operation.operation.name}
 
-    logger.info(f"Oracle - Manual Sync - Spawning background thread. Manual={is_manual_trigger}")
-    import threading
-    thread = threading.Thread(target=run_sync_task, args=(is_manual_trigger,))
-    thread.start()
-    return {"status": "Sync triggered in background"}
+    except Exception as e:
+        logger.error(f"Oracle - Sync Request - FAILED to dispatch Cloud Run Job: {e}")
+        
+        # JMc - [2026-04-04] - Fallback to local thread if Job API fails 
+        # (This keeps the system alive if IAM isn't configured yet)
+        import threading
+        logger.warning("Oracle - Sync Request - FALLING BACK to local thread execution.")
+        thread = threading.Thread(target=run_sync_task, args=(is_manual_trigger,))
+        thread.start()
+        return {"status": "Sync triggered (Local Fallback)", "error": str(e)}
 
 
 

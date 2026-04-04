@@ -1,4 +1,4 @@
-# Stage 1: Build the React application
+# JMc - [2026-03-18] - Hardened Backend Production Image
 FROM python:3.11-slim
 
 WORKDIR /app
@@ -12,6 +12,7 @@ COPY ./app ./app
 COPY ./init_db.py .
 COPY ./migrate_v2.py .
 COPY ./migrate_v2_1.py .
+COPY ./run_sync.py .
 
 # JMc - [2026-03-31] - Security Hardening: Run as non-privileged user
 RUN useradd -m lotteryuser && chown -R lotteryuser:lotteryuser /app
