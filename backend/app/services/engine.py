@@ -1,4 +1,4 @@
-1import itertools
+import itertools
 import random
 from collections import defaultdict, Counter
 
