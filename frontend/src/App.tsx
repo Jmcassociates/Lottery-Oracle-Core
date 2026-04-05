@@ -4,6 +4,7 @@ import AuthPage from './pages/AuthPage';
 import Dashboard from './pages/Dashboard';
 import AdminDashboard from './pages/AdminDashboard';
 import MagicLinkVerify from './pages/MagicLinkVerify';
+import ManifestoRedirect from './pages/ManifestoRedirect';
 import ProtectedRoute from './components/ProtectedRoute';
 import './App.css';
 
@@ -15,6 +16,9 @@ function App() {
         <Route path="/" element={<LandingPage />} />
         <Route path="/login" element={<AuthPage mode="login" />} />
         <Route path="/register" element={<AuthPage mode="register" />} />
+
+        {/* JMc - [2026-04-05] - Identity Bridge for PDF Manifesto Prospects */}
+        <Route path="/manifesto" element={<ManifestoRedirect />} />
 
         {/* JMc - [2026-03-18] - Redemption endpoint for passwordless login */}
         <Route path="/auth/verify" element={<MagicLinkVerify />} />

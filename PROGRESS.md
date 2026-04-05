@@ -1,5 +1,11 @@
 # Project Progress: Lottery Oracle Dashboard
 
+### 2026-04-04 18:00 EDT - Phase 27: Cost Optimization & Synchronization Resilience (v2.10)
+- **Serverless Compute Suppresion:** Re-architected the entire `run_sync_task` background protocol. The War Room "Force Sync" button now dispatches a standalone **Google Cloud Run Job** (`oracle-sync-job`) via the GCP API, rather than spawning a local thread. This allowed us to revert the main web service back to `cpu-throttling`, eliminating the massive 24/7 idle compute tax and reducing monthly infrastructure costs by an estimated 90%.
+- **Global Database Lock (`GLOBAL_SYNC_PROTOCOL`):** Replaced the fragile per-game locking mechanism with a single, overarching SQLite lock. This completely resolved the "UI Drift" race condition where the frontend polling would falsely assume the sync was complete if it pinged the server during the 3-second network breather between games.
+- **508 Compliant Executive Telemetry:** Overhauled the `EmailService` "System Pulse" report. Scrapped the dark-mode aesthetic for a WCAG 2.1 compliant light theme (Emerald `#047857` and Slate `#1e293b` on White `#ffffff`). The briefing now explicitly labels the sync origin (`FORCED MANUAL OVERRIDE` vs `AUTONOMOUS NIGHTLY CYCLE`) and provides granular, game-by-game completion timestamps and highlighted error tracebacks.
+- **Artifact Registry Purge Policy:** Implemented a JSON-based cleanup policy in GCP to automatically delete Docker images older than 24 hours (keeping a rolling reserve of the 3 most recent versions), permanently halting linear storage bloat.
+
 ### 2026-04-03 17:15 EDT - Phase 26: Unified Gateway & Strategic Doctrine (v2.9)
 - **Unified Nginx Gateway:** Resolved all CORS/405/404 "Failed to fetch" errors by configuring Nginx to act as a reverse proxy for `/api` traffic. The platform now operates under a high-security Single-Origin policy (`oracleapp.moderncyph3r.com`).
 - **Compliance Killswitch:** Implemented the "Account Deactivation" protocol. Admins can now manually deactivate users in the War Room, immediately severing Magic Link access and signaling GHL to move the card to the "Banned/Inactive" stage.

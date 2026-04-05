@@ -309,6 +309,36 @@ def trigger_sync(request: Request, db: Session = Depends(get_db)):
 
 
 
+@app.post("/api/telemetry/prospect")
+async def track_prospect(payload: dict):
+    """
+    JMc - [2026-04-05] - Identity Bridge Tripwire.
+    Triggered when a user clicks the manifesto link in the GHL email.
+    Pings GHL to move the opportunity to 'Technical Prospect'.
+    """
+    email = payload.get("email")
+    if not email:
+        return {"status": "ignored", "reason": "No email provided"}
+
+    logger.info(f"Oracle Telemetry: Identity Handshake detected for {email}. Signaling GHL...")
+
+    ghl_webhook_url = os.getenv("GHL_TIER_UPDATE_WEBHOOK")
+    if ghl_webhook_url:
+        try:
+            # Signal GHL that this user is now a Technical Prospect
+            import requests
+            requests.post(ghl_webhook_url, json={
+                "email": email,
+                "status": "technical_prospect",
+                "source": "oracle_manifesto_bridge"
+            }, timeout=5)
+            return {"status": "success", "signaled": "GHL"}
+        except Exception as e:
+            logger.error(f"Oracle Telemetry: GHL Signal failed for {email}: {e}")
+            return {"status": "error", "message": str(e)}
+    
+    return {"status": "success", "signaled": "none"}
+
 @app.get("/api/admin/health")
 def admin_health_check():
     """
