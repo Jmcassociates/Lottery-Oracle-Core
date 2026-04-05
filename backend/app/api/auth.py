@@ -57,6 +57,21 @@ def register(user: UserCreate, db: Session = Depends(get_db)):
     db.commit()
     db.refresh(new_user)
     
+    # JMc - [2026-04-05] - Telemetry Dispatch: Signal GHL that a Free Tier user has entered the Vault.
+    ghl_webhook_url = os.getenv("GHL_TIER_UPDATE_WEBHOOK")
+    if ghl_webhook_url:
+        import requests
+        try:
+            requests.post(ghl_webhook_url, json={
+                "email": new_user.email,
+                "tier": "free",
+                "status": "active",
+                "source": "oracle_registration"
+            }, timeout=5)
+            logger.info(f"Oracle Telemetry: GHL signaled for new Vault User {new_user.email}")
+        except Exception as e:
+            logger.error(f"Oracle Telemetry: GHL Signal failed for registration {new_user.email}: {e}")
+
     access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
     access_token = create_access_token(
         data={"sub": new_user.email}, expires_delta=access_token_expires
