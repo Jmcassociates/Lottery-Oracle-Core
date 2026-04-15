@@ -8,7 +8,7 @@ logger = logging.getLogger(__name__)
 # JMc - [2026-03-18] - Migration Script v2.1
 # Re-aligns National games with the NAT state code and correct game names.
 
-DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./lottery.db")
+DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./lottery.db").strip()
 
 def migrate():
     engine = create_engine(DATABASE_URL)

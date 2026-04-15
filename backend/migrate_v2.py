@@ -8,7 +8,7 @@ logger = logging.getLogger(__name__)
 # JMc - [2026-03-18] - Migration Script v2.0
 # Adds administrative and passwordless support to the Cloud SQL schema.
 
-DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./lottery.db")
+DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./lottery.db").strip()
 
 def migrate():
     engine = create_engine(DATABASE_URL)

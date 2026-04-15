@@ -71,8 +71,13 @@ const AdminDashboard = () => {
         setLogs(logsData);
         setError(null); // Clear previous errors on success
 
-        // JMc - [2026-03-31] - Source of Truth: Check the actual DB-backed backend sync lock
-        if (statsData.sync_active) {
+        // JMc - [2026-04-15] - Hardened Job Lock UI Evaluation.
+        // We evaluate both the local state and check if any job has literally just started
+        // but hasn't had time to write to the SyncLog DB yet.
+        const hasImportingLog = logsData.some(log => log.status === 'IMPORTING');
+        const dbLockActive = statsData.sync_active;
+        
+        if (dbLockActive || hasImportingLog) {
             setIsSyncing(true);
             if (!pollInterval.current) startPolling();
         } else {
