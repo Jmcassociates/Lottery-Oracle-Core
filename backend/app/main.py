@@ -185,6 +185,19 @@ def run_sync_task(is_manual: bool = False):
             user_pro = db_final.query(User).filter(User.tier == "pro").count()
             total_records = db_final.query(DrawRecord).count()
 
+            # JMc - [2026-04-15] - Explicitly release the Global Sync Lock in the DB
+            # We locate the most recent 'IMPORTING' lock we wrote during the trigger phase and close it out.
+            from sqlalchemy import desc
+            global_lock = db_final.query(SyncLog).filter(
+                SyncLog.game_name == "GLOBAL_SYNC_PROTOCOL", 
+                SyncLog.status == "IMPORTING"
+            ).order_by(desc(SyncLog.executed_at)).first()
+            
+            if global_lock:
+                global_lock.status = "SUCCESS"
+                db_final.commit()
+                logger.info("Oracle - Manual Sync - [PHASE 3] Global DB Lock Released.")
+
             # Dispatch the Executive Briefing
             report_data = {
                 "is_manual": is_manual,
