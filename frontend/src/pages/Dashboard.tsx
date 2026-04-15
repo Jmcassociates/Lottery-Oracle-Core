@@ -358,8 +358,9 @@ const Dashboard = () => {
           </div>
         )}
 
-        {tier !== 'pro' && <MathRealitySection />}
-
+        {/* JMc - [2026-04-15] - UI Layout Fix.
+            Moved the actual tickets above the educational Math Reality section 
+            so the user gets immediate visual feedback on their action. */}
         {tickets.length > 0 && (
           <section className="results" style={{ marginBottom: '4rem' }}>
             <h2>New Deployment Sequence</h2>
@@ -373,6 +374,8 @@ const Dashboard = () => {
             </div>
           </section>
         )}
+
+        {tier !== 'pro' && <MathRealitySection />}
 
         <section className="vault">
           <h2>The Vault (Historical Artifacts)</h2>
