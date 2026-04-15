@@ -255,9 +255,15 @@ def trigger_sync(request: Request, db: Session = Depends(get_db)):
         SyncLog.executed_at >= ten_mins_ago
     ).count()
 
+    # JMc - [2026-04-15] - Add a global marker to the DB to ensure UI polling catches it instantly
     if active_syncs > 0 or SYNC_STATE.get("is_syncing", False):
         logger.warning("Oracle - Sync Request - Rejected: Protocol already active.")
         raise HTTPException(status_code=409, detail="A synchronization protocol is already active.")
+
+    # JMc - Write the Global Lock to the DB immediately before we even call GCP
+    global_lock = SyncLog(game_name="GLOBAL_SYNC_PROTOCOL", status="IMPORTING", new_records=0)
+    db.add(global_lock)
+    db.commit()
 
     # JMc - [2026-04-04] - Execute Cloud Run Job
     logger.info(f"Oracle - Sync Request - Dispatching Cloud Run Job. Manual={is_manual_trigger}")
@@ -289,17 +295,12 @@ def trigger_sync(request: Request, db: Session = Depends(get_db)):
         operation = client.run_job(request=request_exec)
         logger.info(f"Oracle - Sync Request - Job dispatched: {operation.operation.name}")
         
-        # JMc - Immediately signal the UI that we are "IMPORTING" via the DB lock
-        # This bridges the gap until the Job starts writing its own logs.
-        # But wait, the Job will write the Global lock immediately.
-        
         return {"status": "Sync Job Triggered", "job_id": operation.operation.name}
 
     except Exception as e:
         logger.error(f"Oracle - Sync Request - FAILED to dispatch Cloud Run Job: {e}")
         
         # JMc - [2026-04-04] - Fallback to local thread if Job API fails 
-        # (This keeps the system alive if IAM isn't configured yet)
         import threading
         logger.warning("Oracle - Sync Request - FALLING BACK to local thread execution.")
         thread = threading.Thread(target=run_sync_task, args=(is_manual_trigger,))
