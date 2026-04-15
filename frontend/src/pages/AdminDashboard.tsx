@@ -169,6 +169,26 @@ const AdminDashboard = () => {
     }
   };
 
+  const purgeUser = async (userId: number, email: string) => {
+    if (!window.confirm(`CRITICAL WARNING: You are about to permanently purge ${email} and all associated mathematical artifacts from the system. This action cannot be reversed. Proceed?`)) {
+      return;
+    }
+    
+    try {
+      const res = await fetchWithAuth(`/api/admin/users/${userId}`, {
+        method: 'DELETE'
+      });
+      if (res.ok) {
+        setUsers(users.filter(u => u.id !== userId));
+      } else {
+        const errorData = await res.json();
+        alert(errorData.detail || "Failed to execute structural purge.");
+      }
+    } catch (e) {
+      alert("Communication error during purge.");
+    }
+  };
+
   if (loading && !stats) return <div style={{ color: '#38bdf8', padding: '50px', textAlign: 'center', fontFamily: 'monospace' }}>INITIALIZING WAR ROOM...</div>;
 
   return (
@@ -242,7 +262,7 @@ const AdminDashboard = () => {
                         <button onClick={() => toggleStatus(user.id, user.is_active)} style={{ background: 'transparent', border: `1px solid ${user.is_active ? '#450a0a' : '#10b981'}`, color: user.is_active ? '#fca5a5' : '#10b981', fontSize: '12px', padding: '4px 8px', cursor: 'pointer', borderRadius: '4px' }}>
                           {user.is_active ? 'Deactivate' : 'Reactivate'}
                         </button>
-                        <button onClick={() => handlePurgeUser(user.id, user.email)} style={{ background: '#ef4444', border: 'none', color: '#ffffff', fontSize: '12px', padding: '4px 8px', cursor: 'pointer', borderRadius: '4px', fontWeight: 'bold' }}>
+                        <button onClick={() => purgeUser(user.id, user.email)} style={{ background: '#ef4444', border: 'none', color: '#ffffff', fontSize: '12px', padding: '4px 8px', cursor: 'pointer', borderRadius: '4px', fontWeight: 'bold' }}>
                           PURGE
                         </button>
                       </div>
