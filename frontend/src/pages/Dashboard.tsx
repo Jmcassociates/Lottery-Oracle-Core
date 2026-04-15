@@ -127,7 +127,8 @@ const Dashboard = () => {
   };
 
   const handleUpgrade = () => {
-    window.location.href = "https://oracle.moderncyph3r.com/offering-page";
+    // JMc - [2026-04-15] - Target the 2-step order funnel directly.
+    window.location.href = "https://oracle.moderncyph3r.com/vault-access";
   };
 
   const generateTickets = async () => {
