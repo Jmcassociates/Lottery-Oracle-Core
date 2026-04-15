@@ -5,7 +5,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 from app.core.database import get_db
-from app.core.models import User, DrawRecord, SyncLog
+from app.core.models import User, DrawRecord, SyncLog, SavedTicketBatch, SavedTicket
 from app.api.deps import get_current_admin_user
 from app.core.config import GAMES, SYNC_STATE
 
@@ -146,6 +146,40 @@ async def update_user_status(user_id: int, payload: dict, db: Session = Depends(
             logger.error(f"Oracle - GHL Compliance Signal - Failed for {user.email}: {e}")
 
     return {"status": "success", "user": user.email, "is_active": bool(user.is_active)}
+
+@router.delete("/users/{user_id}")
+async def hard_delete_user(user_id: int, db: Session = Depends(get_db), current_admin: User = Depends(get_current_admin_user)):
+    """
+    JMc - [2026-04-15] - The Universal Purge.
+    Hard deletes a user and cascades all associated mathematical tickets from the DB.
+    Used for clearing test data and enforcing strict data compliance.
+    """
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+        
+    if user.email == "james@moderncyph3r.com":
+        raise HTTPException(status_code=403, detail="The Lead Architect cannot be purged from the system.")
+
+    target_email = user.email
+
+    try:
+        # Step 1: Nuke all tickets and batches
+        batches = db.query(SavedTicketBatch).filter(SavedTicketBatch.user_id == user.id).all()
+        for b in batches:
+            db.query(SavedTicket).filter(SavedTicket.batch_id == b.id).delete()
+        db.query(SavedTicketBatch).filter(SavedTicketBatch.user_id == user.id).delete()
+        
+        # Step 2: Nuke the user
+        db.delete(user)
+        db.commit()
+        logger.warning(f"Admin {current_admin.email} executed a HARD PURGE on {target_email}.")
+        
+        return {"status": "success", "message": f"Identity {target_email} completely erased from the Oracle."}
+    except Exception as e:
+        db.rollback()
+        logger.error(f"Failed to hard delete user {target_email}: {e}")
+        raise HTTPException(status_code=500, detail="Database integrity error during purge.")
 
 @router.get("/logs")
 def get_sync_logs(limit: int = 20, db: Session = Depends(get_db), current_admin: User = Depends(get_current_admin_user)):

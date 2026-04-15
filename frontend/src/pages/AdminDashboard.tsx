@@ -237,10 +237,13 @@ const AdminDashboard = () => {
                     {!user.is_admin && (
                       <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
                         <button onClick={() => toggleTier(user.id, user.tier)} style={{ background: 'transparent', border: '1px solid #334155', color: '#cbd5e1', fontSize: '12px', padding: '4px 8px', cursor: 'pointer', borderRadius: '4px' }}>
-                          {user.tier === 'pro' ? 'Downgrade' : 'Upgrade to Pro'}
+                          {user.tier === 'pro' ? 'Downgrade' : 'Upgrade'}
                         </button>
                         <button onClick={() => toggleStatus(user.id, user.is_active)} style={{ background: 'transparent', border: `1px solid ${user.is_active ? '#450a0a' : '#10b981'}`, color: user.is_active ? '#fca5a5' : '#10b981', fontSize: '12px', padding: '4px 8px', cursor: 'pointer', borderRadius: '4px' }}>
                           {user.is_active ? 'Deactivate' : 'Reactivate'}
+                        </button>
+                        <button onClick={() => handlePurgeUser(user.id, user.email)} style={{ background: '#ef4444', border: 'none', color: '#ffffff', fontSize: '12px', padding: '4px 8px', cursor: 'pointer', borderRadius: '4px', fontWeight: 'bold' }}>
+                          PURGE
                         </button>
                       </div>
                     )}
