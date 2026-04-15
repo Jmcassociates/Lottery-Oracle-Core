@@ -77,7 +77,7 @@ def register(user: UserCreate, db: Session = Depends(get_db)):
         data={"sub": new_user.email}, expires_delta=access_token_expires
     )
     
-    return {"access_token": access_token, "token_type": "bearer", "tier": new_user.tier}
+    return {"access_token": access_token, "token_type": "bearer", "tier": new_user.tier, "is_admin": bool(new_user.is_admin)}
 
 @router.post("/login", response_model=Token)
 def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
