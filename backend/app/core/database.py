@@ -5,6 +5,11 @@ import os
 # JMc - [2026-03-07] - Using a local SQLite database file, easily volume-mounted in Docker.
 DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./lottery.db")
 
+# JMc - [2026-04-15] - The Whitespace Assassin Fix.
+# GitHub Actions '--set-env-vars' injection often leaves a leading space if not formatted perfectly.
+# Stripping whitespace prevents SQLAlchemy parsing errors on Job boot.
+DATABASE_URL = DATABASE_URL.strip()
+
 # JMc - [2026-03-18] - Cloud Run PostgreSQL requires omitting the SQLite-specific thread check.
 connect_args = {}
 if DATABASE_URL.startswith("sqlite"):
