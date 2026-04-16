@@ -2,12 +2,19 @@
 /* Use this for /vault-access, /cancel-access, and /cancel-success */
 
 /* 1. Reset & Global Background - Forced Obsidian */
-html, body, #app, .hl-app, .hl_wrapper, .hl-main-container, .hl-main-content, .ghl-page-container {
+html, body {
     background-color: #020617 !important;
-    background-image: none !important;
     color: #f8fafc !important;
     font-family: 'Inter', sans-serif !important;
     min-height: 100vh !important;
+    margin: 0 !important;
+    padding: 0 !important;
+}
+
+#app, .hl-app, .hl_wrapper, .hl-main-container, .hl-main-content, .ghl-page-container {
+    background-color: #020617 !important;
+    background-image: none !important;
+    /* REMOVED min-height to prevent flex-stretching of child sections */
     margin: 0 !important;
     padding: 0 !important;
 }
