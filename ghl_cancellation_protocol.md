@@ -20,9 +20,11 @@ Create a new Workflow in GHL named "Oracle - 1 - Cancellation Requested".
 *   **Action 1 (CRM Update):** 
     *   *Type:* Add Contact Tag.
     *   *Action:* `Pending Cancellation`.
-*   **Action 2 (Stripe Termination):**
-    *   *Type:* Cancel Subscription (Native GHL Premium Action).
-    *   *CRITICAL SETTING:* Set to cancel **"At the end of the billing period"**. (Do NOT select "Immediately").
+*   **Action 2 (The Stripe Proxy Webhook):**
+    *   *Type:* Webhook.
+    *   *URL:* `https://oracle-backend-ca5k2evwwq-ue.a.run.app/api/auth/webhook/ghl-cancel`
+    *   *Headers:* Add a Custom Header named `X-GHL-Verify` and set the value to your `GHL_WEBHOOK_SECRET` (the same one used in the provision workflow).
+    *   *Payload:* Ensure it sends the standard contact data (which includes the email).
 *   **Action 3 (Email Confirmation):**
     *   *Type:* Send Email.
     *   *Subject:* `Oracle Protocol: Deactivation Notice`

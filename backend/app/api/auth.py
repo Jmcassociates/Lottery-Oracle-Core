@@ -246,3 +246,93 @@ async def ghl_webhook_provision(request: Request, db: Session = Depends(get_db))
         return {"status": "success", "user": email, "email_dispatched": False}
         
     return {"status": "success", "user": email, "email_dispatched": True}
+
+@router.post("/webhook/ghl-cancel")
+async def ghl_webhook_cancel(request: Request, db: Session = Depends(get_db)):
+    """
+    JMc - [2026-04-16] - The Stripe Proxy. 
+    Receives cancellation signal from GHL and securely terminates the Stripe subscription
+    without relying on GHL's premium actions or hallucinated merge tags.
+    """
+    # 1. Security Check
+    token = request.headers.get("X-GHL-Verify")
+    if token != GHL_WEBHOOK_SECRET:
+        logger.warning(f"Unauthorized cancel webhook attempt blocked. Invalid token: {token}")
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid webhook secret")
+        
+    request_data = await request.json()
+    
+    # 2. Extract Email Payload
+    def extract_email(data):
+        if isinstance(data, dict):
+            if "email" in data and isinstance(data["email"], str) and "@" in data["email"]:
+                return data["email"]
+            if "emailLowerCase" in data and isinstance(data["emailLowerCase"], str) and "@" in data["emailLowerCase"]:
+                return data["emailLowerCase"]
+            for key, value in data.items():
+                result = extract_email(value)
+                if result:
+                    return result
+        elif isinstance(data, list):
+            for item in data:
+                result = extract_email(item)
+                if result:
+                    return result
+        return None
+
+    email = extract_email(request_data)
+    
+    if not email:
+        logger.error(f"Cancel Webhook missing email. Payload: {request_data}")
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Email is required")
+        
+    email = email.lower().strip()
+    
+    # 3. Connect to Stripe API
+    import requests
+    stripe_key = os.getenv("STRIPE_SECRET_KEY")
+    if not stripe_key:
+        logger.error("Oracle Billing: STRIPE_SECRET_KEY is missing from environment. Cannot proxy cancellation.")
+        return {"status": "failed", "reason": "server_misconfiguration"}
+        
+    headers = {
+        "Authorization": f"Bearer {stripe_key}",
+        "Content-Type": "application/x-www-form-urlencoded"
+    }
+    
+    # 3a. Look up customer by email
+    cust_res = requests.get(f"https://api.stripe.com/v1/customers?email={email}", headers=headers)
+    if cust_res.status_code != 200:
+        logger.error(f"Oracle Billing: Stripe API error fetching customer for {email}: {cust_res.text}")
+        return {"status": "failed", "reason": "stripe_api_error"}
+        
+    customers = cust_res.json().get("data", [])
+    if not customers:
+        logger.warning(f"Oracle Billing: No Stripe customer found for {email}.")
+        return {"status": "skipped", "reason": "no_customer"}
+        
+    cust_id = customers[0]["id"]
+    
+    # 3b. Look up active subscription
+    sub_res = requests.get(f"https://api.stripe.com/v1/subscriptions?customer={cust_id}&status=active", headers=headers)
+    subs = sub_res.json().get("data", [])
+    
+    if not subs:
+        logger.info(f"Oracle Billing: No active subscriptions to cancel for {email}.")
+        return {"status": "skipped", "reason": "no_active_subscriptions"}
+        
+    sub_id = subs[0]["id"]
+    
+    # 3c. Execute Deferred Cancellation
+    update_res = requests.post(
+        f"https://api.stripe.com/v1/subscriptions/{sub_id}",
+        headers=headers,
+        data={"cancel_at_period_end": "true"}
+    )
+    
+    if update_res.status_code == 200:
+        logger.info(f"Oracle Billing: Successfully scheduled termination for {email} (Sub: {sub_id}).")
+        return {"status": "success"}
+    else:
+        logger.error(f"Oracle Billing: Failed to cancel {sub_id}: {update_res.text}")
+        return {"status": "failed", "reason": "stripe_update_error"}
