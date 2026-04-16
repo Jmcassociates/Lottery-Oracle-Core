@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { fetchWithAuth, getTier, logout, getEmail } from '../utils/auth';
+import { fetchWithAuth, getTier, logout } from '../utils/auth';
 import mermaid from 'mermaid';
 
 // JMc - [2026-04-01] - Initialize Mermaid with high-contrast dark theme.
