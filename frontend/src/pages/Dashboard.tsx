@@ -432,7 +432,7 @@ const Dashboard = () => {
           )}
         </section>
 
-        {tier === 'pro' && (
+        {tier === 'free' && (
            <div style={{ marginTop: '5rem' }}>
               <MathRealitySection />
            </div>
