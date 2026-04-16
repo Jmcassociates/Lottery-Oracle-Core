@@ -286,16 +286,35 @@ const Dashboard = () => {
                 {tier === 'pro' ? 'Pro Tier' : 'Free Tier'}
               </div>
               
-              <a href="https://oracle.moderncyph3r.com/offering-page" className="dropdown-item">
-                {tier === 'pro' ? 'Manage Subscription' : 'Upgrade to Pro'}
-              </a>
+              {/* JMc - [2026-04-16] - Fixed Support and Subscription Routing */}
+              {tier === 'pro' ? (
+                <button 
+                  onClick={() => {
+                    if (window.confirm("Subscription Management\n\nYou are about to be redirected to the Oracle Billing Portal to manage or cancel your Pro Tier access.\n\nCancel at any time. Active subscriptions will terminate at the end of their current billing cycle. All deployments are final; there are no refunds.\n\nProceed to Billing?")) {
+                      window.location.href = "https://oracle.moderncyph3r.com/cancel-access";
+                    }
+                  }} 
+                  className="dropdown-item" 
+                  style={{ width: '100%', textAlign: 'left', background: 'none', border: 'none', font: 'inherit', cursor: 'pointer' }}
+                >
+                  Manage Subscription
+                </button>
+              ) : (
+                <button 
+                  onClick={handleUpgrade} 
+                  className="dropdown-item"
+                  style={{ width: '100%', textAlign: 'left', background: 'none', border: 'none', font: 'inherit', cursor: 'pointer' }}
+                >
+                  Upgrade to Pro
+                </button>
+              )}
               
-              <a href="https://oracle.moderncyph3r.com/support" target="_blank" rel="noreferrer" className="dropdown-item">
+              <a href="mailto:support@ModernCYPH3R.com?subject=The%20Lottery%20Oracle" className="dropdown-item">
                 Contact Support
               </a>
               
               <div className="dropdown-divider"></div>
-              <div onClick={logout} className="dropdown-item" style={{ color: '#ef4444' }}>
+              <div onClick={logout} className="dropdown-item" style={{ color: '#ef4444', cursor: 'pointer' }}>
                 Logout System
               </div>
             </div>
