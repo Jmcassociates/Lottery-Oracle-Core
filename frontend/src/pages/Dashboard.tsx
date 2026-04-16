@@ -127,10 +127,10 @@ const Dashboard = () => {
   };
 
   const handleUpgrade = () => {
-    // JMc - [2026-04-16] - Pre-fill identity on the 2-step order form for a frictionless transition.
-    const email = getEmail();
-    const url = "https://oracle.moderncyph3r.com/vault-access";
-    window.location.href = email ? `${url}?email=${encodeURIComponent(email)}` : url;
+    // JMc - [2026-04-16] - Pivot: Removing email pre-fill. 
+    // The URL parameter was triggering Google Phishing filters (false positives).
+    // Reverting to a clean URL to protect domain reputation.
+    window.location.href = "https://oracle.moderncyph3r.com/vault-access";
   };
 
   const generateTickets = async () => {
