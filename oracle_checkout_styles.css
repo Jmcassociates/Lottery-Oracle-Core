@@ -1,0 +1,148 @@
+/* JMc - [2026-04-15] - Hardened Checkout Styles */
+/* Drop this into the GHL Page Settings > Custom CSS */
+
+:root {
+  --oracle-blue: #38bdf8;
+  --oracle-green: #10b981;
+  --oracle-red: #ef4444;
+  --oracle-slate: #1e293b;
+  --oracle-bg: #020617;
+  --oracle-panel: #0f172a;
+}
+
+/* 1. Universal Base - Clean Obsidian Aesthetic */
+html, body, #app, .hl-app, .hl_wrapper, .hl-main-container, .hl-main-content, .section, .ghl-page-container {
+    background-color: #020617 !important;
+    background-image: none !important;
+    mask-image: none !important;
+    -webkit-mask-image: none !important;
+    color: #f8fafc !important;
+    font-family: 'Inter', -apple-system, sans-serif !important;
+    min-height: 100vh !important;
+    margin: 0 !important;
+}
+
+/* 2. Kill Nested Backgrounds and Excessive Padding */
+.inner-container, .c-row, .c-column, .inner, .hl_section, .section, .hl_row {
+    background-color: transparent !important;
+    background-image: none !important;
+    padding-top: 0 !important;
+    padding-bottom: 0 !important;
+    margin-top: 0 !important;
+    margin-bottom: 0 !important;
+}
+
+/* 3. The Footer Fix */
+.ghl-footer, footer, .bottom-section, .legal-footer {
+    background-color: #020617 !important;
+    border: none !important;
+    padding-top: 40px !important;
+}
+
+/* 4. THE CARD - Elevated Oracle Container */
+.oracle-card, .main-checkout-container {
+    background-color: #0f172a !important; 
+    background-image: none !important; 
+    border: 1px solid #1e293b !important;
+    border-radius: 16px !important;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7) !important;
+    margin: 20px auto !important;
+    overflow: hidden !important;
+}
+
+/* The Value Proposition Box */
+.oracle-upgrade-panel {
+  background-color: transparent !important;
+  padding: 30px;
+}
+
+.oracle-upgrade-header {
+  color: #38bdf8;
+  font-size: 24px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-top: 0;
+  margin-bottom: 15px;
+  border-bottom: 2px solid #1e293b;
+  padding-bottom: 15px;
+}
+
+.oracle-upgrade-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.oracle-upgrade-list li {
+  margin-bottom: 15px;
+  font-size: 16px;
+  color: #cbd5e1;
+  display: flex;
+  align-items: flex-start;
+  line-height: 1.5;
+}
+
+.oracle-upgrade-list li::before {
+  content: '✓';
+  color: #10b981;
+  margin-right: 15px;
+  font-weight: bold;
+}
+
+/* 3. Hardening the GHL 2-Step Order Form */
+.c-order, .container-order-form-two-step, .order-2step, .order-form {
+  background-color: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+
+.c-order > div, .container-order-form-two-step > div, .form-container, .form-builder-fill, .form-body {
+  background-color: transparent !important;
+}
+
+.form-header, .step-title, .c-order .nav-tabs, .c-order .step-title {
+  background-color: transparent !important;
+  color: #38bdf8 !important;
+  text-transform: uppercase !important;
+  letter-spacing: 1px !important;
+  border-bottom: 1px solid #1e293b !important;
+}
+
+.c-order label, .form-group label, .order-form label {
+  color: #cbd5e1 !important;
+  font-family: 'Inter', sans-serif !important;
+  font-weight: 500 !important;
+}
+
+.c-order input, .c-order select, 
+.c-order input.form-control, .c-order select.form-control,
+.form-control, .StripeElement, iframe[name*="__privateStripeFrame"] {
+  background-color: #020617 !important;
+  border: 1px solid #1e293b !important;
+  color: #f8fafc !important;
+  border-radius: 6px !important;
+}
+
+.order-summary, .product-detail, .c-order .product-detail {
+  background-color: rgba(2, 6, 23, 0.5) !important;
+  border: 1px solid #1e293b !important;
+  color: #e2e8f0 !important;
+}
+
+.c-order button, .c-order .btn-checkout, .btn-primary, button[type="submit"], .btn-checkout-primary {
+  background-color: #38bdf8 !important;
+  color: #020617 !important;
+  font-weight: 800 !important;
+  text-transform: uppercase !important;
+  border-radius: 6px !important;
+  transition: all 0.2s ease !important;
+  font-family: 'Montserrat', sans-serif !important;
+  border: none !important;
+  padding: 15px !important;
+}
+
+.c-order button:hover, .c-order .btn-checkout:hover, button[type="submit"]:hover, .btn-checkout-primary:hover {
+  background-color: #0284c7 !important;
+  transform: translateY(-2px);
+}

@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { fetchWithAuth, getTier, logout } from '../utils/auth';
+import { fetchWithAuth, getTier, logout, getEmail } from '../utils/auth';
 import mermaid from 'mermaid';
 
 // JMc - [2026-04-01] - Initialize Mermaid with high-contrast dark theme.
@@ -127,8 +127,10 @@ const Dashboard = () => {
   };
 
   const handleUpgrade = () => {
-    // JMc - [2026-04-15] - Target the 2-step order funnel directly.
-    window.location.href = "https://oracle.moderncyph3r.com/vault-access";
+    // JMc - [2026-04-16] - Pre-fill identity on the 2-step order form for a frictionless transition.
+    const email = getEmail();
+    const url = "https://oracle.moderncyph3r.com/vault-access";
+    window.location.href = email ? `${url}?email=${encodeURIComponent(email)}` : url;
   };
 
   const generateTickets = async () => {
