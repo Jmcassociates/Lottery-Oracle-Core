@@ -1,8 +1,8 @@
-/* JMc - [2026-04-16] - Universal Oracle GHL Styling - V2.0 Hardened */
+/* JMc - [2026-04-16] - Universal Oracle GHL Styling - V3.0 Brute Force */
 /* Use this for /vault-access, /cancel-access, and /cancel-success */
 
 /* 1. Reset & Global Background - Forced Obsidian */
-html, body, #app, .hl-app, .hl_wrapper, .hl-main-container, .hl-main-content, .section, .ghl-page-container, .hl_section {
+html, body, #app, .hl-app, .hl_wrapper, .hl-main-container, .hl-main-content, .ghl-page-container {
     background-color: #020617 !important;
     background-image: none !important;
     color: #f8fafc !important;
@@ -12,8 +12,14 @@ html, body, #app, .hl-app, .hl_wrapper, .hl-main-container, .hl-main-content, .s
     padding: 0 !important;
 }
 
-/* 2. Whitespace & Border Annihilation */
-/* JMc - GHL injects #155EEF and #D0D5DD borders into columns and sections. Zeroing them out globally. */
+/* Base text properties for sections without forcing height */
+.section, .hl_section {
+    background-color: #020617 !important;
+    color: #f8fafc !important;
+    font-family: 'Inter', sans-serif !important;
+}
+
+/* 2. Whitespace & Border Annihilation - KILL GHL BLUE BORDER */
 .inner-container, .c-row, .c-column, .inner, .hl_section, .section, .hl_row, .c-section, .hl_wrapper, .hl_wrapper-inner, .hl_form-builder, .form-builder-fill {
     padding-top: 0 !important;
     padding-bottom: 0 !important;
@@ -32,23 +38,23 @@ html, body, #app, .hl-app, .hl_wrapper, .hl-main-container, .hl-main-content, .s
     border: 1px solid #1e293b !important;
     border-radius: 16px !important;
     box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7) !important;
-    margin: 10px auto !important; /* Extremely compact vertical margin */
+    margin: 10px auto !important; 
     overflow: hidden !important;
-    padding: 20px !important;
+    padding: 30px !important;
 }
 
-/* 4. Standard Form Skinning & Internal Border Neutralization */
-/* Targeting the specific custom class added in the GHL builder */
+/* 4. Standard Form Skinning & TOTAL WHITE-OUT */
+/* JMc - Using wildcard to kill white backgrounds inside the form custom class */
 .oracle-standard-form,
-.oracle-standard-form form,
-.oracle-standard-form > div,
+.oracle-standard-form *,
 .ghl-form-container, 
 .form-builder-fill, 
 .ghl-question, 
 .form-body,
 .hl_form-builder,
 [data-element="form"],
-.c-form {
+.c-form,
+.c-form-wrapper {
     background-color: transparent !important;
     background: transparent !important;
     border: none !important;
@@ -57,33 +63,39 @@ html, body, #app, .hl-app, .hl_wrapper, .hl-main-container, .hl-main-content, .s
     box-shadow: none !important;
 }
 
+/* Fix Labels - Pure White & Bold */
 .oracle-standard-form label,
-.ghl-form-container label, .form-builder-fill label {
-    color: #cbd5e1 !important;
-    font-weight: 600 !important;
-    margin-bottom: 8px !important;
-    font-size: 14px !important;
+.oracle-standard-form .control-label,
+.oracle-standard-form .q-label,
+.ghl-form-container label, 
+.form-builder-fill label,
+.ghl-question .q-label {
+    color: #ffffff !important;
+    font-weight: 700 !important;
+    margin-bottom: 12px !important;
+    font-size: 15px !important;
     display: block !important;
+    text-transform: uppercase !important;
+    letter-spacing: 1px !important;
 }
 
-.oracle-standard-form input, .oracle-standard-form select, .oracle-standard-form textarea,
-.ghl-form-container input, .ghl-form-container select, .ghl-form-container textarea,
-.form-builder-fill input, .form-builder-fill select {
+/* Inputs - Obsidian High Contrast */
+.oracle-standard-form input, 
+.oracle-standard-form select, 
+.oracle-standard-form textarea,
+.ghl-form-container input, 
+.ghl-form-container select, 
+.ghl-form-container textarea,
+.form-builder-fill input, 
+.form-builder-fill select {
     background-color: #020617 !important;
     border: 1px solid #1e293b !important;
     color: #f8fafc !important;
     border-radius: 6px !important;
-    padding: 12px !important;
-    width: 100% !important; /* Force full width */
+    padding: 16px !important; /* Increased padding for luxury feel */
+    width: 100% !important;
     box-sizing: border-box !important;
-}
-
-/* Focus state - Kill the GHL Blue Glow */
-.oracle-standard-form input:focus,
-.ghl-form-container input:focus, .form-builder-fill input:focus {
-    border-color: #38bdf8 !important;
-    outline: none !important;
-    box-shadow: 0 0 0 2px rgba(56, 189, 248, 0.2) !important;
+    font-size: 16px !important;
 }
 
 /* Form Buttons - Standard */
@@ -94,19 +106,20 @@ html, body, #app, .hl-app, .hl_wrapper, .hl-main-container, .hl-main-content, .s
     font-family: 'Montserrat', sans-serif !important;
     font-weight: 800 !important;
     text-transform: uppercase !important;
-    letter-spacing: 1px !important;
+    letter-spacing: 1.5px !important;
     border-radius: 6px !important;
     border: none !important;
-    padding: 15px 30px !important;
-    transition: transform 0.2s ease !important;
+    padding: 20px 30px !important;
+    transition: all 0.2s ease !important;
     width: 100% !important;
-    margin-top: 10px !important;
+    margin-top: 20px !important;
+    cursor: pointer !important;
 }
 
-.oracle-standard-form button:hover,
-.ghl-form-container button:hover {
+.oracle-standard-form button:hover {
     background-color: #0284c7 !important;
     transform: translateY(-2px);
+    box-shadow: 0 4px 15px rgba(56, 189, 248, 0.4) !important;
 }
 
 /* 5. 2-Step Order Form Overrides (For Checkout) */
@@ -130,6 +143,6 @@ html, body, #app, .hl-app, .hl_wrapper, .hl-main-container, .hl-main-content, .s
 /* 6. Legal Footer Cleanup */
 .legal-footer, .ghl-footer, footer {
     background-color: #020617 !important;
-    padding: 40px 0 !important;
+    padding: 60px 0 !important;
     border-top: 1px solid #1e293b !important;
 }
