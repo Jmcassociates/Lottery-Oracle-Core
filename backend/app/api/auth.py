@@ -291,51 +291,84 @@ async def ghl_webhook_cancel(request: Request, db: Session = Depends(get_db)):
     # 3. Connect to Stripe API
     import requests
     stripe_key = os.getenv("STRIPE_SECRET_KEY")
-    if not stripe_key:
-        logger.error("Oracle Billing: STRIPE_SECRET_KEY is missing from environment. Cannot proxy cancellation.")
+    test_key = os.getenv("STRIPE_TEST_KEY")
+    
+    if not stripe_key and not test_key:
+        logger.error("Oracle Billing: BOTH Stripe keys are missing from environment. Cannot proxy cancellation.")
         return {"status": "failed", "reason": "server_misconfiguration"}
         
-    headers = {
-        "Authorization": f"Bearer {stripe_key}",
-        "Content-Type": "application/x-www-form-urlencoded"
-    }
-    
-    # 3a. Look up customer by email
-    cust_res = requests.get(f"https://api.stripe.com/v1/customers?email={email}", headers=headers)
-    if cust_res.status_code != 200:
-        logger.error(f"Oracle Billing: Stripe API error fetching customer for {email}: {cust_res.text}")
-        return {"status": "failed", "reason": "stripe_api_error"}
+    def execute_stripe_cancel(api_key, target_email):
+        headers = {
+            "Authorization": f"Bearer {api_key}",
+            "Content-Type": "application/x-www-form-urlencoded"
+        }
         
-    customers = cust_res.json().get("data", [])
-    if not customers:
-        logger.warning(f"Oracle Billing: No Stripe customer found for {email}.")
-        return {"status": "skipped", "reason": "no_customer"}
+        # 3a. Look up customer by email
+        cust_res = requests.get(f"https://api.stripe.com/v1/customers?email={target_email}", headers=headers)
+        if cust_res.status_code != 200:
+            return {"status": "failed", "reason": "api_error", "details": cust_res.text}
+            
+        customers = cust_res.json().get("data", [])
+        if not customers:
+            return {"status": "not_found", "reason": "no_customer"}
+            
+        cust_id = customers[0]["id"]
         
-    cust_id = customers[0]["id"]
-    
-    # 3b. Look up active subscription
-    sub_res = requests.get(f"https://api.stripe.com/v1/subscriptions?customer={cust_id}&status=active", headers=headers)
-    subs = sub_res.json().get("data", [])
-    
-    if not subs:
-        logger.info(f"Oracle Billing: No active subscriptions to cancel for {email}.")
-        return {"status": "skipped", "reason": "no_active_subscriptions"}
+        # 3b. Look up active subscription
+        sub_res = requests.get(f"https://api.stripe.com/v1/subscriptions?customer={cust_id}&status=active", headers=headers)
+        subs = sub_res.json().get("data", [])
         
-    sub_id = subs[0]["id"]
-    
-    # 3c. Execute Deferred Cancellation
-    update_res = requests.post(
-        f"https://api.stripe.com/v1/subscriptions/{sub_id}",
-        headers=headers,
-        data={"cancel_at_period_end": "true"}
-    )
-    
-    if update_res.status_code == 200:
-        logger.info(f"Oracle Billing: Successfully scheduled termination for {email} (Sub: {sub_id}).")
-        return {"status": "success"}
+        if not subs:
+            return {"status": "not_found", "reason": "no_active_subscriptions"}
+            
+        sub_id = subs[0]["id"]
+        
+        # 3c. Execute Deferred Cancellation
+        update_res = requests.post(
+            f"https://api.stripe.com/v1/subscriptions/{sub_id}",
+            headers=headers,
+            data={"cancel_at_period_end": "true"}
+        )
+        
+        if update_res.status_code == 200:
+            return {"status": "success", "sub_id": sub_id}
+        else:
+            return {"status": "failed", "reason": "update_error", "details": update_res.text}
+
+    # Attempt Live Cancel First
+    if stripe_key:
+        logger.info(f"Oracle Billing: Attempting LIVE environment cancellation for {email}...")
+        result = execute_stripe_cancel(stripe_key, email)
+        
+        if result["status"] == "success":
+            logger.info(f"Oracle Billing: LIVE termination scheduled for {email} (Sub: {result['sub_id']}).")
+            return {"status": "success"}
+        elif result["status"] == "failed" and result["reason"] == "api_error":
+             logger.error(f"Oracle Billing: LIVE Stripe API error for {email}: {result.get('details')}")
+             return result
     else:
-        logger.error(f"Oracle Billing: Failed to cancel {sub_id}: {update_res.text}")
-        return {"status": "failed", "reason": "stripe_update_error"}
+        result = {"status": "not_found"}
+
+    # Fallback to Test Cancel
+    if result["status"] == "not_found" and test_key:
+        logger.info(f"Oracle Billing: Customer {email} not found in LIVE. Attempting SANDBOX environment...")
+        test_result = execute_stripe_cancel(test_key, email)
+        
+        if test_result["status"] == "success":
+            logger.info(f"Oracle Billing: SANDBOX termination scheduled for {email} (Sub: {test_result['sub_id']}).")
+            return {"status": "success"}
+        elif test_result["status"] == "not_found":
+            logger.warning(f"Oracle Billing: Customer {email} not found in LIVE or SANDBOX. Skipping cancellation.")
+            return {"status": "skipped", "reason": "customer_not_found_anywhere"}
+        else:
+            logger.error(f"Oracle Billing: SANDBOX Stripe API error for {email}: {test_result.get('details')}")
+            return test_result
+            
+    elif result["status"] == "not_found":
+         logger.warning(f"Oracle Billing: Customer {email} not found in LIVE, and no test key is configured. Skipping.")
+         return {"status": "skipped", "reason": "customer_not_found_no_fallback"}
+         
+    return result
 
 @router.post("/webhook/ghl-downgrade")
 async def ghl_webhook_downgrade(request: Request, db: Session = Depends(get_db)):
