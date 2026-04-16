@@ -336,3 +336,54 @@ async def ghl_webhook_cancel(request: Request, db: Session = Depends(get_db)):
     else:
         logger.error(f"Oracle Billing: Failed to cancel {sub_id}: {update_res.text}")
         return {"status": "failed", "reason": "stripe_update_error"}
+
+@router.post("/webhook/ghl-downgrade")
+async def ghl_webhook_downgrade(request: Request, db: Session = Depends(get_db)):
+    """
+    JMc - [2026-04-16] - The Final Reaper.
+    Triggered by GHL Workflow B when Stripe officially terminates a subscription.
+    This flips the user back to the Free Tier in the Oracle Database.
+    """
+    # 1. Security Check
+    token = request.headers.get("X-GHL-Verify")
+    if token != GHL_WEBHOOK_SECRET:
+        logger.warning(f"Unauthorized downgrade webhook attempt blocked.")
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED)
+        
+    request_data = await request.json()
+    
+    # 2. Extract Email
+    def extract_email(data):
+        if isinstance(data, dict):
+            if "email" in data and isinstance(data["email"], str) and "@" in data["email"]:
+                return data["email"]
+            if "emailLowerCase" in data and isinstance(data["emailLowerCase"], str) and "@" in data["emailLowerCase"]:
+                return data["emailLowerCase"]
+            for key, value in data.items():
+                result = extract_email(value)
+                if result:
+                    return result
+        elif isinstance(data, list):
+            for item in data:
+                result = extract_email(item)
+                if result:
+                    return result
+        return None
+
+    email = extract_email(request_data)
+    if not email:
+        logger.error(f"Downgrade Webhook missing email. Payload: {request_data}")
+        return {"status": "failed", "reason": "no_email_in_payload"}
+
+    email = email.lower().strip()
+    
+    # 3. Flip Tier in DB
+    user = db.query(User).filter(User.email == email).first()
+    if user:
+        user.tier = "free"
+        db.commit()
+        logger.info(f"Oracle Compliance: User {email} officially downgraded to FREE tier.")
+        return {"status": "success", "user": email, "new_tier": "free"}
+    
+    logger.warning(f"Oracle Compliance: Downgrade signal received for non-existent user {email}.")
+    return {"status": "skipped", "reason": "user_not_found"}
