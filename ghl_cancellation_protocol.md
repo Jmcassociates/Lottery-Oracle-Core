@@ -38,13 +38,16 @@ Create a new Workflow in GHL named "Oracle - 1 - Cancellation Requested".
 ### 3. Workflow B: The "True" Killswitch (End of Billing Cycle)
 Create a second Workflow in GHL named "Oracle - 2 - Subscription Officially Terminated".
 
-*   **Trigger:** Subscription Cancelled (Native GHL Trigger listening to Stripe).
+*   **Trigger:** Subscription -> Filter: **Status is Canceled**.
 *   **Action 1 (CRM Update):** 
-    *   *Type:* Move Opportunity.
-    *   *Action:* Move to "Vault User: Free Tier" (or a specific "Churned" stage).
+    *   *Type:* Remove Tag: `Pending Cancellation`.
+    *   *Type:* Add Tag: `Churned`.
+    *   *Action:* Move Opportunity to "Vault User: Free Tier" (or a specific "Churned" stage).
 *   **Action 2 (The Oracle Downgrade Webhook):**
     *   *Type:* Webhook.
-    *   *URL:* `https://oracle-backend-ca5k2evwwq-ue.a.run.app/api/admin/users/webhook-tier-downgrade` 
-    *   *Payload:* Must pass the user's email.
+    *   *Method:* **POST**
+    *   *URL:* `https://oracle-backend-ca5k2evwwq-ue.a.run.app/api/auth/webhook/ghl-downgrade` 
+    *   *Headers:* Add a Custom Header named `X-GHL-Verify` and set the value to your `GHL_WEBHOOK_SECRET` (the same one used in the provision workflow).
+    *   *Payload:* Leave empty (default contact data).
 
-*Note: We will build the `/webhook-tier-downgrade` endpoint in the Oracle backend on Thursday to catch this final signal and securely flip their `users` table record from `pro` to `free`.*
+*Note: The `/webhook/ghl-downgrade` endpoint is live on the Oracle backend to catch this final signal and securely flip the user record from `pro` to `free`.*
