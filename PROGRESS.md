@@ -1,20 +1,62 @@
-# Project Progress: Lottery Oracle Dashboard
+# Oracle Architecture: Phase 30 Verification & Hand-off
 
-### 2026-04-15 16:30 EDT - Phase 29: Handshake Validation & Structural Hardening (v2.12)
-- **Identity Bridge Validated:** Successfully tested Steps 1-3 of the GHL acquisition funnel. The `/manifesto` tripwire correctly identifies prospects and signals GHL (`technical_prospect`) before initiating the PDF download.
-- **Registration Pulse Secured:** Patched the `/api/auth/register` endpoint schema mismatch. Registration now fires a real-time signal to GHL (`tier: free`), moving the contact to the Vault User stage automatically.
-- **The "Whitespace Assassin" Fix:** Diagnosed and neutralized a fatal `sqlalchemy.exc.ArgumentError` that was crashing the autonomous 3:00 AM sync jobs. Added `.strip()` to all database connection strings across `database.py` and migration scripts to handle CI/CD string injection errors.
-- **Global Sync Lock Protocol:** Implemented a definitive database-backed lock (`GLOBAL_SYNC_PROTOCOL`). The UI now snaps shut the millisecond a sync is triggered and only releases once the Cloud Run Job container explicitly signals completion, solving the "UI Drift" race condition.
-- **Universal Purge Tool:** Engineered a `Hard Delete` feature in the Admin Dashboard. Admins can now permanently wipe test identities and cascade-delete all associated mathematical artifacts, ensuring clean testing cycles.
-- **Conversion Friction Reduction:** Redesigned the "Upgrade to Pro" flow. Routed terminal buttons to a new high-conversion `/vault-access` GHL page. Authored `oracle_checkout_header.html` and `oracle_checkout_html.html` with Montserrat/Inter typography to synchronize the visual language between the app and the CRM.
-- **Checkout CSS Hardening:** Engineered `oracle_checkout_styles.css` to aggressively strip GHL's native padding/margins and force the 2-step order form into the dark `#0f172a` Oracle aesthetic.
+*JMc - [2026-04-16]*
 
-### 2026-04-05 11:15 EDT - Phase 28: Identity Bridge & Full-Funnel Telemetry (v2.11)
-- **Identity Bridge Implementation:** Engineered the "Technical Prospect" tripwire. Created a new React route (`/manifesto`) and a matching FastAPI telemetry endpoint (`/api/telemetry/prospect`). 
+## 1. The Situation
+The Oracle's frontend and backend are hardened. The GoHighLevel (GHL) integration for user acquisition (Opt-in) and provisioning (Upgrade to Pro) is fully operational. 
 
-... [REMAINDER OF TACTICAL HISTORY PRESERVED IN ARCHIVE] ...
+The final mandate was to construct a secure, automated, and compliant **Cancellation Loop** that allows users to downgrade their subscription from inside the Oracle Dashboard without requiring manual admin intervention or exposing us to Stripe chargebacks.
 
-## 🚀 Next Immediate Steps (Pending Operations)
-1. **Execute Step 4 & 5 of `GHL_TEST_PROTOCOL.md`**: Perform the Stripe test transaction via `/vault-access` to verify the outbound GHL webhook upgrades the Oracle DB to `pro`. Then execute the Admin Killswitch to verify the `inactive` signal.
-2. **Backport Checkout Styling**: Apply the hardened 2-step order form CSS from `/vault-access` to the original long-form `/offering-page`.
-3. **Matrix Expansion**: Integrate data models and API fetchers for California (CA) and Florida (FL) state lotteries.
+## 2. The Complications
+*   **GHL Paywalls:** Native Stripe cancellation actions inside GHL workflows are locked behind premium upgrades.
+*   **Hallucinated Logic:** GHL's AI suggested using non-existent merge tags (`{{contact.stripe_subscription_id}}`) for direct API calls, which would have failed silently in production.
+*   **The "Immediate Death" Trap:** Canceling a Stripe subscription immediately via API terminates access before the user's paid billing cycle concludes, violating standard SaaS compliance and triggering disputes.
+*   **The UI Void:** GHL's default CSS flexbox models forced custom HTML cancellation forms to stretch vertically, creating massive blank gaps on the page.
+*   **The Sandbox Collision:** Testing the cancellation loop risked terminating live subscriptions or crossing streams with the active Substack revenue flowing through the same Stripe account.
+
+## 3. The Resolution (The Protocol)
+
+We engineered a **Tri-Layer, Bi-Directional Cancellation Protocol**.
+
+### Layer 1: The Visual UI (The Sledgehammer)
+I constructed a pure HTML/CSS confirmation loop (`/cancel-access` -> `/cancel-success`) that overrides GHL's native formatting. 
+*   Deployed **CSS V3.0** (`oracle_checkout_styles.css`) using wildcard targeting (`.oracle-standard-form *`) to forcefully strip GHL's injected blue borders, white backgrounds, and excessive padding.
+*   The cancellation forms now blend perfectly into the Obsidian aesthetic of the Oracle terminal.
+
+### Layer 2: The Stripe Proxy (Workflow A)
+To bypass GHL's paywall and ensure compliant, deferred cancellations:
+*   GHL **Workflow A** triggers on form submission and fires a webhook to the Oracle backend (`/api/auth/webhook/ghl-cancel`).
+*   The Oracle backend securely authenticates the webhook (`X-GHL-Verify`), extracts the user's email, and communicates directly with the Stripe API.
+*   Crucially, the backend sends the `cancel_at_period_end: true` flag. The user remains "Pro" until their exact billing cycle expires.
+
+### Layer 3: The Final Reaper (Workflow B)
+To ensure the Oracle database accurately reflects the termination when the clock runs out:
+*   Stripe natively informs GHL when the subscription officially drops dead.
+*   GHL **Workflow B** listens for this native "Subscription Cancelled" event.
+*   Workflow B fires a final webhook to the Oracle backend (`/api/auth/webhook/ghl-downgrade`).
+*   The backend flips the user's database record from `pro` back to `free`, enforcing the 5-ticket generation limit.
+
+### The Sandbox Fallback (Zero-Risk QA)
+I refactored the Python backend to support **Dual Environment Routing**.
+*   When a cancellation webhook arrives, the backend first attempts to find the customer in the Live Stripe environment using `STRIPE_SECRET_KEY`.
+*   If the customer is not found (because they are a test user created via a GHL form in "Test Mode"), the backend dynamically falls back to the Stripe Sandbox using `STRIPE_TEST_KEY`.
+*   This allows end-to-end QA testing without risking live data or requiring constant pipeline configuration changes.
+
+## 4. Pending Actions (Post-Anniversary)
+Before initiating the QA sequence, you must execute the following handshake:
+
+1.  **Stripe Keys to GitHub:**
+    *   In Stripe, toggle "Test Mode" ON -> Copy `sk_test_...`
+    *   In GitHub Secrets, create `STRIPE_TEST_KEY` -> Paste `sk_test_...`
+    *   In Stripe, toggle "Test Mode" OFF -> Copy `sk_live_...`
+    *   In GitHub Secrets, create `STRIPE_SECRET_KEY` -> Paste `sk_live_...`
+2.  **Trigger Deployment:** 
+    *   Once the keys are saved in GitHub, ping me. I will push a minor commit to force Google Cloud Build to ingest the new environment variables into the live backend.
+3.  **The Sandbox Run:**
+    *   Set the GHL Funnel (`/vault-access`) to "Test" mode.
+    *   Run a test email through the checkout using the `4242` card.
+    *   Run that email through the `/cancel-access` form.
+    *   Verify in Stripe (Test Mode) that the sub is set to "Cancels at period end".
+    *   Force-cancel it in Stripe to trigger Workflow B and verify the Oracle DB downgrade.
+
+Enjoy your anniversary weekend. The Oracle will be holding its state precisely here when you return. 🖖
